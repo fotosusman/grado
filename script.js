@@ -15,21 +15,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
 
     async function cargarColegios() {
-        const select = document.getElementById('colegio');
+        const colegioSelect = document.getElementById('colegio');
         try {
-            const res = await fetch(`${API_URL}?action=getColegios`);
-            const colegios = await res.json();
-            if (Array.isArray(colegios)) {
-                select.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
-                colegios.forEach(c => {
+            const response = await fetch(`${API_URL}?action=getColegios`);
+            const data = await response.json();
+            
+            // Verificamos que 'data' sea una lista real
+            if (Array.isArray(data)) {
+                colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
+                data.forEach(col => {
                     const opt = document.createElement('option');
-                    opt.value = c;
-                    opt.textContent = c;
-                    select.appendChild(opt);
+                    opt.value = col;
+                    opt.textContent = col;
+                    colegioSelect.appendChild(opt);
                 });
             }
-        } catch (e) {
-            select.innerHTML = '<option>Error al cargar</option>';
+        } catch (error) {
+            console.error("Error crítico:", error);
+            colegioSelect.innerHTML = '<option value="" disabled selected>Error de conexión</option>';
         }
     }
     // Llama a la función al cargar la página
