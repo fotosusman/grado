@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usman Mancera | Capturamos el Orgullo</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+
+<body>
+
+    <header class="header reveal">
+        <div class="logo">
+            <img src="assets/Recurso 1logousman.svg" alt="Usman Mancera Logo" style="height: 40px;">
+        </div>
+        <nav class="nav-menu">
+            <a href="#servicios">Servicios</a>
+            <a href="#galeria">Galería</a>
+            <a href="#por-que">Por qué Usman</a>
+        </nav>
+        <a href="#buscar-galeria" class="btn-pill">Descargar mis fotos</a>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-bg-gradient"></div>
+
+            <h1 class="hero-title">Revive cada momento</h1>
+
+            <div class="hero-parallax">
+                <img src="Nueva carpeta/silueta.png" alt="Silueta" class="parallax-img">
+            </div>
+
+            <div class="hero-content reveal">
+                <p class="hero-subtext">Con calidad cinematográfica y un nivel de detalle
+                    excepcional. Especialistas en fotografía de grados y grandes eventos.</p>
+
+                <div class="hero-buttons">
+                    <a href="#cotizar" class="btn-solid-gold">Cotizar mi Evento</a>
+                    <a href="#buscar-galeria" class="btn-outline-white">Galería Privada</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Search Module & Gallery Container -->
+        <section class="search-section" id="buscar-galeria">
+            
+            <!-- Login Bento Box -->
+            <div class="bento-box search-module reveal" id="login-container">
+                <div class="search-module-bg"></div>
+                <div class="search-module-content">
+                    <h2>Tu galería está lista</h2>
+                    <p>Accede a tus fotografías de inmediato</p>
+                    
+                    <div class="login-form">
+                        <div class="input-wrapper">
+                            <select id="colegio" class="login-input">
+                                <option value="" disabled selected>Selecciona tu Colegio</option>
+                                <option value="Colegio San Patricio">Colegio San Patricio</option>
+                                <option value="Instituto Cervantes">Instituto Cervantes</option>
+                                <option value="Gimnasio Moderno">Gimnasio Moderno</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-wrapper">
+                            <input list="alumnos-list" id="nombreAlumno" class="login-input" placeholder="Nombre del Alumno (Selecciona colegio primero)" disabled>
+                            <datalist id="alumnos-list">
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </datalist>
+                        </div>
+                        
+                        <div class="input-wrapper">
+                            <input type="password" id="clave" class="login-input" placeholder="Clave de acceso">
+                        </div>
+                        
+                        <button id="btnEntrar" class="btn-solid-gold w-100 mt-3">
+                            <span id="btnEntrarText">Entrar a mi galería</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </div>
+                    <p id="statusMsg" class="status-message"></p>
+                </div>
+            </div>
+
+            <!-- Gallery Container (Hidden by default) -->
+            <div id="gallery-container" class="gallery-container hidden">
+                <div class="gallery-header">
+                    <div>
+                        <h2 id="gallery-title">Galería de <span id="student-name-display" class="highlight"></span></h2>
+                        <p class="gallery-subtitle">Revive tus mejores momentos con estilo editorial.</p>
+                    </div>
+                    <button id="btnDownloadAll" class="btn-outline-white" style="backdrop-filter: none;">
+                        <i data-lucide="download"></i> Descargar Carpeta
+                    </button>
+                </div>
+                
+                <div id="masonry-grid" class="masonry-grid">
+                    <!-- Las imágenes se insertarán aquí dinámicamente -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Why Usman Section -->
+        <section class="why-usman" id="por-que">
+            <h2 class="section-title reveal">¿Por qué Usman?</h2>
+            <div class="bento-grid">
+                <div class="bento-item reveal">
+                    <i data-lucide="zap" class="bento-icon"></i>
+                    <h3>Velocidad</h3>
+                    <p>Entregas en tiempo récord para que compartas tu logro sin esperar.</p>
+                </div>
+                <div class="bento-item reveal" style="transition-delay: 0.1s;">
+                    <i data-lucide="camera" class="bento-icon"></i>
+                    <h3>Calidad</h3>
+                    <p>Equipos de última generación y retoque editorial en cada captura.</p>
+                </div>
+                <div class="bento-item reveal" style="transition-delay: 0.2s;">
+                    <i data-lucide="users" class="bento-icon"></i>
+                    <h3>Experiencia</h3>
+                    <p>Expertos en protocolo y logística de grandes grupos.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bg-text">USMAN</div>
+        <div class="footer-content reveal">
+            <div class="footer-contact">
+                <a href="#"><i data-lucide="instagram"></i> @usmanmancera</a>
+                <a href="#"><i data-lucide="mail"></i> contacto@usmanmancera.com</a>
+                <a href="#"><i data-lucide="phone"></i> +57 300 000 0000</a>
+            </div>
+            <div class="footer-copyright">
+                &copy; 2026 Usman Mancera Grafic Photo. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="#" class="floating-whatsapp" id="btnWhatsApp">
+        <i data-lucide="message-circle"></i>
+        <span>Consultar Disponibilidad</span>
+    </a>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
