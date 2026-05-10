@@ -14,29 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configuración de la API de Google Apps Script
     const API_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
 
-    // Función para cargar los colegios dinámicamente
     async function cargarColegios() {
-        const colegioSelect = document.getElementById('colegio');
+        const select = document.getElementById('colegio');
         try {
-            const response = await fetch(`${API_URL}?action=getColegios`);
-            const colegios = await response.json();
-            
+            const res = await fetch(`${API_URL}?action=getColegios`);
+            const colegios = await res.json();
             if (Array.isArray(colegios)) {
-                colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
-                colegios.forEach(col => {
+                select.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
+                colegios.forEach(c => {
                     const opt = document.createElement('option');
-                    opt.value = col;
-                    opt.textContent = col;
-                    colegioSelect.appendChild(opt);
+                    opt.value = c;
+                    opt.textContent = c;
+                    select.appendChild(opt);
                 });
             }
-        } catch (error) {
-            console.error("Error cargando colegios:", error);
-            colegioSelect.innerHTML = '<option value="" disabled selected>Error al conectar</option>';
+        } catch (e) {
+            select.innerHTML = '<option>Error al cargar</option>';
         }
     }
-
-    // Llamamos a la función al cargar la página
+    // Llama a la función al cargar la página
     cargarColegios();
 
     // 1. Manejo del Select de Colegio
