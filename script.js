@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarColegios() {
         const colegioSelect = document.getElementById('colegio');
         try {
-            const response = await fetch(`${API_URL}?action=getColegios`);
+            const response = await fetch(`${API_URL}?action=getColegios`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
             const data = await response.json();
             
             // Solo intentamos llenar el menú si recibimos una lista (Array)
@@ -49,7 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Pedimos los alumnos del colegio seleccionado a tu API de Google
-            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegio)}`);
+            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegio)}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
             const alumnos = await response.json();
             
             // Esta función llena la lista desplegable con los nombres del Excel
@@ -83,7 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btnEntrarText').innerText = "Validando...";
 
         try {
-            const response = await fetch(`${API_URL}?nombre=${encodeURIComponent(nombre)}&clave=${encodeURIComponent(clave)}&colegio=${encodeURIComponent(colegio)}`);
+            const url = `${API_URL}?nombre=${encodeURIComponent(nombre)}&clave=${encodeURIComponent(clave)}&colegio=${encodeURIComponent(colegio)}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            });
             const data = await response.json();
 
             if (data.error) {
