@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}?action=getColegios`);
             const data = await response.json();
             
-            // Verificamos que 'data' sea una lista real
+            // Solo intentamos llenar el menú si recibimos una lista (Array)
             if (Array.isArray(data)) {
                 colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
                 data.forEach(col => {
@@ -29,10 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     opt.textContent = col;
                     colegioSelect.appendChild(opt);
                 });
+            } else {
+                colegioSelect.innerHTML = '<option value="" disabled>Error en datos</option>';
             }
         } catch (error) {
-            console.error("Error crítico:", error);
-            colegioSelect.innerHTML = '<option value="" disabled selected>Error de conexión</option>';
+            console.error("Error:", error);
+            colegioSelect.innerHTML = '<option value="" disabled>Error de conexión</option>';
         }
     }
     // Llama a la función al cargar la página
