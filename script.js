@@ -21,19 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}?action=getColegios`);
             const colegios = await response.json();
             
-            // Limpiamos el select y dejamos solo la opción por defecto
-            colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
-            
-            // Agregamos cada colegio que venga del Excel
-            colegios.forEach(col => {
-                const opt = document.createElement('option');
-                opt.value = col;
-                opt.textContent = col;
-                colegioSelect.appendChild(opt);
-            });
+            if (Array.isArray(colegios)) {
+                colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
+                colegios.forEach(col => {
+                    const opt = document.createElement('option');
+                    opt.value = col;
+                    opt.textContent = col;
+                    colegioSelect.appendChild(opt);
+                });
+            }
         } catch (error) {
-            console.error("Error al cargar colegios:", error);
-            colegioSelect.innerHTML = '<option value="" disabled selected>Error al cargar</option>';
+            console.error("Error cargando colegios:", error);
+            colegioSelect.innerHTML = '<option value="" disabled selected>Error al conectar</option>';
         }
     }
 
