@@ -14,6 +14,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configuración de la API de Google Apps Script
     const API_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
 
+    // Función para cargar los colegios dinámicamente
+    async function cargarColegios() {
+        const colegioSelect = document.getElementById('colegio');
+        try {
+            const response = await fetch(`${API_URL}?action=getColegios`);
+            const colegios = await response.json();
+            
+            // Limpiamos el select y dejamos solo la opción por defecto
+            colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
+            
+            // Agregamos cada colegio que venga del Excel
+            colegios.forEach(col => {
+                const opt = document.createElement('option');
+                opt.value = col;
+                opt.textContent = col;
+                colegioSelect.appendChild(opt);
+            });
+        } catch (error) {
+            console.error("Error al cargar colegios:", error);
+            colegioSelect.innerHTML = '<option value="" disabled selected>Error al cargar</option>';
+        }
+    }
+
+    // Llamamos a la función al cargar la página
+    cargarColegios();
+
     // 1. Manejo del Select de Colegio
     colegioSelect.addEventListener('change', async () => {
         const colegio = colegioSelect.value;
