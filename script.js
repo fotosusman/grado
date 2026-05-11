@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarColegiosYAlumnos();
     reveal();
     initParallax();
-    
+
     // Inicializar iconos de Lucide si están disponibles
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -33,9 +33,9 @@ function mostrarFotos(fotos) {
         div.className = 'masonry-item reveal';
 
         const img = document.createElement('img');
-        img.src = urlVisualizacion; 
+        img.src = urlVisualizacion;
         img.alt = foto.nombre || "Foto de galería";
-        img.loading = "lazy"; 
+        img.loading = "lazy";
 
         div.appendChild(img);
         contenedor.appendChild(div);
@@ -68,9 +68,9 @@ async function login() {
         const alumnos = await response.json();
 
         // Buscamos al alumno ignorando espacios extras
-        const alumno = alumnos.find(a => 
-            a.colegio.trim() === colegio.trim() && 
-            a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() && 
+        const alumno = alumnos.find(a =>
+            a.colegio.trim() === colegio.trim() &&
+            a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() &&
             a.clave.toString().trim() === clave.trim()
         );
 
@@ -89,10 +89,15 @@ async function login() {
             const btnDownload = document.getElementById('btnDownloadAll');
             const btnDownloadBottom = document.getElementById('btnDownloadBottom');
             if (alumno.idDescarga) {
-                if (btnDownload) btnDownload.onclick = () => descargarZip(alumno.idDescarga);
-                if (btnDownloadBottom) btnDownloadBottom.onclick = () => descargarZip(alumno.idDescarga);
+                const descargaFn = () => descargarZip(alumno.idDescarga);
+                if (btnDownload) btnDownload.onclick = descargaFn;
+                if (btnDownloadBottom) btnDownloadBottom.onclick = descargaFn;
+                console.log("Botones de descarga configurados con folder:", alumno.idDescarga);
             }
-            
+
+            // Re-inicializar iconos de Lucide para el botón inferior
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
             // Scroll suave a la galería
             setTimeout(() => {
                 document.getElementById('galeria-section').scrollIntoView({ behavior: 'smooth' });
@@ -112,7 +117,7 @@ async function login() {
 async function descargarZip(folderId) {
     const btnDownload = document.getElementById('btnDownloadAll');
     const textoOriginal = btnDownload.innerHTML;
-    
+
     try {
         btnDownload.innerHTML = '<i data-lucide="loader" class="spin"></i> Preparando descarga...';
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -129,7 +134,7 @@ async function descargarZip(folderId) {
             const zip = archivos.find(a => a.nombre.toLowerCase().endsWith('.zip')) || archivos[0];
             // Descarga directa desde Google Drive
             const downloadUrl = `https://drive.google.com/uc?export=download&id=${zip.id}`;
-            
+
             // Crear enlace invisible y hacer clic para forzar descarga
             const a = document.createElement('a');
             a.href = downloadUrl;
@@ -154,7 +159,7 @@ async function descargarZip(folderId) {
 async function cargarFotos(folderId) {
     console.log("Iniciando carga de fotos para el folder:", folderId);
     const contenedor = document.getElementById('galeria');
-    
+
     // Mostrar skeleton de carga mientras se obtienen las fotos
     contenedor.innerHTML = `
         <div class="loading-skeleton">
@@ -194,13 +199,13 @@ async function cargarColegiosYAlumnos() {
             redirect: 'follow'
         });
         const alumnos = await response.json();
-        
+
         // Guardar todos los alumnos en variable global
         todosLosAlumnos = alumnos;
-        
+
         // Extraer colegios únicos
         const colegios = [...new Set(alumnos.map(a => a.colegio.trim()))];
-        
+
         select.innerHTML = '<option value="" disabled selected>Selecciona tu colegio</option>';
         colegios.forEach(col => {
             const opt = document.createElement('option');
