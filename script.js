@@ -169,9 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Descargar Todo
     btnDownloadAll.addEventListener('click', () => {
         if(currentFolderId) {
-            // Esta URL especial intenta forzar a Google Drive a descargar la carpeta (según solicitud)
-            const downloadUrl = `https://drive.google.com/uc?export=download&id=${currentFolderId}`;
-            window.open(downloadUrl, '_blank');
+            // Este enlace intenta forzar a Google Drive a preparar un ZIP de la carpeta
+            const altDownloadUrl = `https://drive.google.com/u/0/uc?id=${currentFolderId}&export=download`;
+            window.open(altDownloadUrl, '_blank');
         } else {
             showFeedback("Primero debes iniciar sesión para obtener el enlace.", "error");
         }
