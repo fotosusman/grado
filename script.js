@@ -169,9 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Descargar Todo
     btnDownloadAll.addEventListener('click', () => {
         if(currentFolderId) {
-            // El enlace directo para abrir la carpeta en Drive (u/0/ especificado por el usuario)
-            const driveUrl = `https://drive.google.com/drive/u/0/folders/${currentFolderId}`;
-            window.open(driveUrl, '_blank');
+            // Esta URL especial intenta forzar a Google Drive a descargar la carpeta (según solicitud)
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${currentFolderId}`;
+            window.open(downloadUrl, '_blank');
+        } else {
+            showFeedback("Primero debes iniciar sesión para obtener el enlace.", "error");
         }
     });
 
