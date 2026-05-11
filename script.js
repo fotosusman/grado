@@ -98,6 +98,12 @@ async function login() {
 
             // Cargamos las fotos usando el idGaleria registrado en el Excel
             cargarFotos(alumno.idGaleria);
+
+            // Configurar botón de descarga con la carpeta ZIP del alumno
+            const btnDownload = document.getElementById('btnDownloadAll');
+            if (btnDownload && alumno.idDescarga) {
+                btnDownload.onclick = () => descargarZip(alumno.idDescarga);
+            }
             
             // Scroll suave a la galería
             setTimeout(() => {
@@ -112,6 +118,12 @@ async function login() {
     } finally {
         if (btnText) btnText.textContent = "Entrar a mi galería";
     }
+}
+
+// Función para descargar el ZIP desde la carpeta Descarga_ZIP
+function descargarZip(folderId) {
+    // Abre la carpeta de descarga en Google Drive directamente
+    window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
 }
 
 // Función para solicitar las fotos al servidor
