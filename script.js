@@ -120,10 +120,46 @@ async function login() {
     }
 }
 
-// Función para descargar el ZIP desde la carpeta Descarga_ZIP
-function descargarZip(folderId) {
-    // Abre la carpeta de descarga en Google Drive directamente
-    window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+// Función para descargar el ZIP directamente
+async function descargarZip(folderId) {
+    const btnDownload = document.getElementById('btnDownloadAll');
+    const textoOriginal = btnDownload.innerHTML;
+    
+    try {
+        btnDownload.innerHTML = '<i data-lucide="loader" class="spin"></i> Preparando descarga...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        const response = await fetch(`${SCRIPT_URL}?action=getArchivos&folderId=${folderId}`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+        const archivos = await response.json();
+        console.log("Archivos en carpeta ZIP:", archivos);
+
+        if (archivos && archivos.length > 0) {
+            // Buscar el archivo ZIP
+            const zip = archivos.find(a => a.nombre.toLowerCase().endsWith('.zip')) || archivos[0];
+            // Descarga directa desde Google Drive
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${zip.id}`;
+            
+            // Crear enlace invisible y hacer clic para forzar descarga
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = zip.nombre;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            alert("No se encontró el archivo ZIP. Contacta al fotógrafo.");
+        }
+    } catch (error) {
+        console.error("Error descargando ZIP:", error);
+        alert("Error al intentar descargar. Intenta de nuevo.");
+    } finally {
+        btnDownload.innerHTML = textoOriginal;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
 }
 
 // Función para solicitar las fotos al servidor
