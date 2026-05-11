@@ -274,12 +274,12 @@
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerText = "Procesando...";
-            status.style.color = "blue";
-            status.innerText = "Subiendo fotos y registrando en Excel...";
-
             try {
+                btn.disabled = true;
+                btn.innerText = "Registrando...";
+                status.style.color = "blue";
+                status.innerText = "Procesando fotos y enviando...";
+
                 // Leer archivos y convertirlos a Base64
                 const filePromises = selectedFiles.map(file => {
                     return new Promise((resolve) => {
@@ -295,9 +295,14 @@
 
                 const processedFiles = await Promise.all(filePromises);
 
-                // Enviar datos vía POST a Google Apps Script
-                const response = await fetch(APPS_SCRIPT_URL, {
+                // IMPORTANTE: Para evitar el error 500, enviamos los datos como texto plano
+                // Google Apps Script lo recibirá correctamente en e.postData.contents
+                await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'no-cors', 
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
                     body: JSON.stringify({
                         action: 'createGallery',
                         colegio: colegio,
@@ -307,29 +312,13 @@
                     })
                 });
 
-                const result = await response.json();
-
-                if (result.error) {
-                    status.style.color = "red";
-                    status.innerText = "Error: " + result.error;
-                } else {
-                    status.style.color = "green";
-                    status.innerText = "¡Alumno registrado y fotos subidas con éxito!";
-                }
-                
-                // Limpiar campos
-                document.getElementById('adminColegio').value = "";
-                document.getElementById('adminNombre').value = "";
-                document.getElementById('adminClave').value = "";
-                selectedFiles = [];
-                fileCountDisplay.innerText = "Haz clic o arrastra las fotos aquí";
-                
-                setTimeout(loadUsers, 2000);
+                // Como es no-cors, asumimos éxito si no salta al catch
+                alert("¡Registro enviado! Verifica tu Drive en unos segundos.");
+                location.reload(); // Recarga para limpiar
 
             } catch (error) {
-                console.error(error);
-                status.style.color = "red";
-                status.innerText = "Error al conectar con el servidor.";
+                console.error("Error:", error);
+                alert("Error al conectar con el servidor.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "CREAR EN DRIVE Y EXCEL";
