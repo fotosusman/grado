@@ -169,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Descargar Todo
     btnDownloadAll.addEventListener('click', () => {
         if(currentFolderId) {
-            // Este link fuerza la preparación del ZIP en la interfaz de Drive
-            const downloadUrl = `https://drive.google.com/drive/u/0/folders/${currentFolderId}?authuser=0&export=download`;
+            // Este es el enlace que usa Google para su propio botón de descarga
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${currentFolderId}`;
             window.open(downloadUrl, '_blank');
         } else {
             showFeedback("Error: No se pudo obtener el ID de la carpeta. Intenta iniciar sesión de nuevo.", "error");
