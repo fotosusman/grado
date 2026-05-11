@@ -183,18 +183,18 @@
                 <p>Registra alumnos y sube sus fotos directamente a Google Drive.</p>
             </div>
 
-            <form id="adminForm" class="admin-form">
+            <div class="admin-form">
                 <div class="form-group">
-                    <label for="admin-colegio">Colegio</label>
-                    <input type="text" id="admin-colegio" class="admin-input" placeholder="Nombre del Colegio" required>
+                    <label for="adminColegio">Colegio</label>
+                    <input type="text" id="adminColegio" class="admin-input" placeholder="Nombre del Colegio" required>
                 </div>
                 <div class="form-group">
-                    <label for="admin-nombre">Nombre del Alumno</label>
-                    <input type="text" id="admin-nombre" class="admin-input" placeholder="Nombre Completo" required>
+                    <label for="adminNombre">Nombre del Alumno</label>
+                    <input type="text" id="adminNombre" class="admin-input" placeholder="Nombre Completo" required>
                 </div>
                 <div class="form-group full">
-                    <label for="admin-clave">Clave de Acceso</label>
-                    <input type="text" id="admin-clave" class="admin-input" placeholder="Define una clave segura" required>
+                    <label for="adminClave">Clave de Acceso</label>
+                    <input type="text" id="adminClave" class="admin-input" placeholder="Define una clave segura" required>
                 </div>
 
                 <div class="form-group full">
@@ -206,12 +206,12 @@
                     </div>
                 </div>
 
-                <button type="submit" id="btnSubmitAdmin" class="btn-submit">
+                <button id="btnRegistrar" onclick="registrarNuevoAlumno()" class="btn-submit">
                     CREAR EN DRIVE Y EXCEL
                 </button>
-            </form>
+            </div>
 
-            <p id="adminStatus" class="status-msg"></p>
+            <p id="statusMessage" class="status-msg"></p>
         </div>
 
         <div class="user-list-card">
@@ -234,13 +234,11 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
         
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
         const fileCountDisplay = document.getElementById('file-count');
-        const status = document.getElementById('adminStatus');
-        const btn = document.getElementById('btnSubmitAdmin');
         let selectedFiles = [];
 
         // Inicializar iconos
@@ -263,22 +261,23 @@
             lucide.createIcons();
         }
 
-        // Envío del Formulario
-        document.getElementById('adminForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        async function registrarNuevoAlumno() {
+            const btn = document.getElementById('btnRegistrar');
+            const status = document.getElementById('statusMessage');
             
-            const colegio = document.getElementById('admin-colegio').value.trim();
-            const nombre = document.getElementById('admin-nombre').value.trim();
-            const clave = document.getElementById('admin-clave').value.trim();
+            const colegio = document.getElementById('adminColegio').value.trim();
+            const nombre = document.getElementById('adminNombre').value.trim();
+            const clave = document.getElementById('adminClave').value.trim();
 
-            if (selectedFiles.length === 0) {
-                showFeedback("Error: Debes seleccionar al menos una foto.", "red");
+            if (!colegio || !nombre || !clave) {
+                alert("Por favor, llena todos los campos.");
                 return;
             }
 
             btn.disabled = true;
-            btn.innerText = "Procesando en Google Cloud...";
-            showFeedback("Subiendo imágenes y registrando en Excel...", "blue");
+            btn.innerText = "Procesando...";
+            status.style.color = "blue";
+            status.innerText = "Subiendo fotos y registrando en Excel...";
 
             try {
                 // Leer archivos y convertirlos a Base64
@@ -297,9 +296,9 @@
                 const processedFiles = await Promise.all(filePromises);
 
                 // Enviar datos vía POST a Google Apps Script
-                await fetch(API_URL, {
+                await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Para evitar problemas de redirección de Google
+                    mode: 'no-cors', 
                     body: JSON.stringify({
                         action: 'createGallery',
                         colegio: colegio,
@@ -309,25 +308,32 @@
                     })
                 });
 
-                // Con no-cors no podemos leer la respuesta, pero si no hay error en el catch, asumimos éxito
-                showFeedback("¡Éxito! Revisa tu Drive y Excel.", "green");
-                document.getElementById('adminForm').reset();
+                // Con no-cors no podemos leer la respuesta, pero si no hay error, asumimos éxito
+                status.style.color = "green";
+                status.innerText = "¡Petición enviada! Verifica tu Excel y Drive en unos segundos.";
+                
+                // Limpiar campos
+                document.getElementById('adminColegio').value = "";
+                document.getElementById('adminNombre').value = "";
+                document.getElementById('adminClave').value = "";
                 selectedFiles = [];
                 fileCountDisplay.innerText = "Haz clic o arrastra las fotos aquí";
-                loadUsers();
+                
+                setTimeout(loadUsers, 2000);
 
             } catch (error) {
                 console.error(error);
-                showFeedback("Error en la conexión.", "red");
+                status.style.color = "red";
+                status.innerText = "Error al conectar con el servidor.";
             } finally {
                 btn.disabled = false;
                 btn.innerText = "CREAR EN DRIVE Y EXCEL";
             }
-        });
+        }
 
         async function loadUsers() {
             try {
-                const response = await fetch(`${API_URL}?action=getAllUsers`);
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllUsers`);
                 const users = await response.json();
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = "";
@@ -342,11 +348,6 @@
             } catch (error) {
                 console.error("Error cargando usuarios:", error);
             }
-        }
-
-        function showFeedback(msg, color) {
-            status.innerText = msg;
-            status.style.color = color;
         }
 
         // Cargar al inicio
