@@ -1,241 +1,187 @@
+// 1. URL de tu implementación (Actualizada a tu enlace más reciente)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
+
+// Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-    const colegioSelect = document.getElementById('colegio');
-    const alumnoInput = document.getElementById('nombreAlumno');
-    const claveInput = document.getElementById('clave');
-    const btnEntrar = document.getElementById('btnEntrar');
-    const statusMsg = document.getElementById('statusMsg');
-    const loginContainer = document.getElementById('login-container');
-    const galleryContainer = document.getElementById('gallery-container');
-    const masonryGrid = document.getElementById('masonry-grid');
-    const studentNameDisplay = document.getElementById('student-name-display');
-    const btnDownloadAll = document.getElementById('btnDownloadAll');
-    let currentFolderId = "";
-
-    // Configuración de la API de Google Apps Script
-    const API_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
-
-    async function cargarColegios() {
-        const colegioSelect = document.getElementById('colegio');
-        try {
-            const response = await fetch(`${API_URL}?action=getColegios`, {
-                method: "GET",
-                mode: "cors",
-                redirect: "follow"
-            });
-            if (!response.ok) throw new Error('Error en la red');
-            const data = await response.json();
-            
-            // Solo intentamos llenar el menú si recibimos una lista (Array)
-            if (Array.isArray(data)) {
-                colegioSelect.innerHTML = '<option value="" disabled selected>Selecciona tu Colegio</option>';
-                data.forEach(col => {
-                    const opt = document.createElement('option');
-                    opt.value = col;
-                    opt.textContent = col;
-                    colegioSelect.appendChild(opt);
-                });
-            } else {
-                colegioSelect.innerHTML = '<option value="" disabled>Error en datos</option>';
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            colegioSelect.innerHTML = '<option value="" disabled>Error de conexión</option>';
-        }
-    }
-    // Llama a la función al cargar la página
     cargarColegios();
+    reveal();
+    initParallax();
+    
+    // Inicializar iconos de Lucide si están disponibles
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
 
-    // 1. Manejo del Select de Colegio
-    colegioSelect.addEventListener('change', async () => {
-        const colegio = colegioSelect.value;
-        alumnoInput.value = "";
-        alumnoInput.disabled = false;
-        alumnoInput.placeholder = "Cargando alumnos...";
+// Función para mostrar las fotos en el HTML
+function mostrarFotos(fotos) {
+    const contenedor = document.getElementById('galeria');
+    contenedor.innerHTML = ''; // Limpiar mensaje de carga
 
-        try {
-            // Pedimos los alumnos del colegio seleccionado a tu API de Google
-            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegio)}`, {
-                method: "GET",
-                mode: "cors",
-                redirect: "follow"
-            });
-            if (!response.ok) throw new Error('Error en la red');
-            const alumnos = await response.json();
-            
-            // Esta función llena la lista desplegable con los nombres del Excel
-            populateDatalist(alumnos);
-            alumnoInput.placeholder = "Escribe tu nombre...";
-        } catch (error) {
-            console.error("Error cargando alumnos:", error);
-            alumnoInput.placeholder = "Error al cargar alumnos";
-        }
+    if (!fotos || fotos.length === 0) {
+        contenedor.innerHTML = '<p class="mensaje">No se encontraron fotos en tu carpeta.</p>';
+        return;
+    }
+
+    fotos.forEach(foto => {
+        // CORRECCIÓN: Se construye la URL usando el ID del archivo de Google Drive
+        const urlVisualizacion = `https://drive.google.com/uc?export=view&id=${foto.id}`;
+
+        const div = document.createElement('div');
+        div.className = 'masonry-item reveal';
+
+        const img = document.createElement('img');
+        img.src = urlVisualizacion; 
+        img.alt = foto.nombre || "Foto de galería";
+        img.loading = "lazy"; 
+
+        const overlay = document.createElement('div');
+        overlay.className = 'masonry-overlay';
+        
+        const link = document.createElement('a');
+        link.href = urlVisualizacion;
+        link.target = "_blank";
+        link.className = "btn-outline-white";
+        link.style.padding = "10px 20px";
+        link.style.fontSize = "0.8rem";
+        link.textContent = 'Ver pantalla completa';
+
+        overlay.appendChild(link);
+        div.appendChild(img);
+        div.appendChild(overlay);
+        contenedor.appendChild(div);
     });
 
-    function populateDatalist(alumnos) {
-        const datalist = document.getElementById('alumnos-list');
-        datalist.innerHTML = '';
-        alumnos.forEach(nombre => {
-            const option = document.createElement('option');
-            option.value = nombre;
-            datalist.appendChild(option);
+    // Re-activar animaciones para las fotos cargadas
+    setTimeout(reveal, 100);
+}
+
+// Función de Login
+async function login() {
+    const colegio = document.getElementById('colegio').value;
+    const nombre = document.getElementById('nombre').value;
+    const clave = document.getElementById('clave').value;
+    const btnText = document.getElementById('btnEntrarText');
+
+    if (!colegio || !nombre || !clave) {
+        alert("Por favor, completa todos los campos.");
+        return;
+    }
+
+    console.log("Intentando conectar con Apps Script...");
+    if (btnText) btnText.textContent = "Validando...";
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
+            method: 'GET',
+            redirect: 'follow'
         });
-    }
+        const alumnos = await response.json();
 
-    // 2. Manejo del Login (Robust Local Validation)
-    btnEntrar.addEventListener('click', async () => {
-        const nombreIngresado = alumnoInput.value.trim();
-        const claveIngresada = claveInput.value.trim();
-        const colegioSeleccionado = colegioSelect.value;
+        // Buscamos al alumno ignorando espacios extras
+        const alumno = alumnos.find(a => 
+            a.colegio.trim() === colegio.trim() && 
+            a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() && 
+            a.clave.toString().trim() === clave.trim()
+        );
 
-        if (!colegioSeleccionado || !nombreIngresado || !claveIngresada) {
-            showFeedback("Por favor, completa todos los campos.", "error");
-            return;
-        }
+        if (alumno) {
+            console.log("Login exitoso para:", alumno.nombre);
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('galeria-section').style.display = 'block';
+            document.getElementById('nombre-usuario').textContent = alumno.nombre;
 
-        btnEntrar.disabled = true;
-        document.getElementById('btnEntrarText').innerText = "Validando...";
-
-        try {
-            console.log("Intentando conectar con Apps Script...");
+            // Cargamos las fotos usando el idGaleria registrado en el Excel
+            cargarFotos(alumno.idGaleria);
             
-            // La URL de acción para obtener todos los alumnos/datos
-            const url = `${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegioSeleccionado)}`;
-            const response = await fetch(url, {
-                method: "GET",
-                mode: "cors",
-                redirect: "follow"
-            });
-            
-            if (!response.ok) throw new Error("Error en la respuesta del servidor");
-
-            const alumnos = await response.json();
-            console.log("Datos recibidos:", alumnos);
-
-            // Buscamos al alumno ignorando mayúsculas/minúsculas y espacios accidentales ("espacios fantasmas")
-            const alumno = alumnos.find(a => 
-                (a.nombre || "").trim().toLowerCase() === nombreIngresado.trim().toLowerCase() && 
-                (a.clave || "").toString().trim() === claveIngresada.trim()
-            );
-
-            if (alumno) {
-                console.log("Login exitoso para:", alumno.nombre);
-                showFeedback("¡Bienvenido!", "success");
-                
-                // Guardamos los datos en sessionStorage para persistencia en la sesión
-                sessionStorage.setItem('usuarioLogueado', JSON.stringify(alumno));
-                currentFolderId = alumno.folderId || alumno.idGaleria || alumno.idDescarga || "";
-                
-                // Cambiar vista
-                setTimeout(() => {
-                    loginContainer.style.display = 'none';
-                    studentNameDisplay.innerText = alumno.nombre;
-                    galleryContainer.classList.remove('hidden');
-                    window.location.hash = "galeria";
-                    
-                    // Renderizamos las fotos (vienen en el objeto del alumno)
-                    renderGallery(alumno.fotos || []);
-                    
-                    reveal();
-                }, 500);
-            } else {
-                showFeedback("Nombre o clave incorrectos para este colegio.", "error");
-            }
-
-        } catch (error) {
-            console.error("Error detallado:", error);
-            showFeedback("Error al conectar. Intenta recargar la página.", "error");
-        } finally {
-            btnEntrar.disabled = false;
-            document.getElementById('btnEntrarText').innerText = "Entrar a mi galería";
-        }
-    });
-
-    function handleError(error) {
-        btnEntrar.disabled = false;
-        document.getElementById('btnEntrarText').innerText = "Entrar a mi galería";
-        showFeedback("Error de conexión. Intenta de nuevo.", "error");
-    }
-
-    function renderGallery(urls) {
-        masonryGrid.innerHTML = '';
-        if(!urls || urls.length === 0) {
-            masonryGrid.innerHTML = '<p>No se encontraron fotos en la carpeta.</p>';
-            return;
-        }
-        
-        urls.forEach(url => {
-            const item = document.createElement('div');
-            item.className = 'masonry-item';
-            
-            const img = document.createElement('img');
-            img.src = url;
-            img.loading = "lazy";
-            
-            item.appendChild(img);
-            masonryGrid.appendChild(item);
-        });
-        
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-
-    // 3. Descargar Todo
-    btnDownloadAll.addEventListener('click', () => {
-        if(currentFolderId) {
-            // Este es el enlace que usa Google para su propio botón de descarga
-            const downloadUrl = `https://drive.google.com/uc?export=download&id=${currentFolderId}`;
-            window.open(downloadUrl, '_blank');
+            // Scroll suave a la galería
+            setTimeout(() => {
+                document.getElementById('galeria-section').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         } else {
-            showFeedback("Error: No se pudo obtener el ID de la carpeta. Intenta iniciar sesión de nuevo.", "error");
+            alert("Datos incorrectos. Verifica tu colegio, nombre o clave.");
         }
-    });
-
-    function showFeedback(msg, type) {
-        statusMsg.innerText = msg;
-        statusMsg.style.color = type === "error" ? "#ff4d4d" : "#4CAF50";
+    } catch (error) {
+        console.error("Error en el login:", error);
+        alert("Error de conexión. Revisa que el ID del Script sea correcto.");
+    } finally {
+        if (btnText) btnText.textContent = "Entrar a mi galería";
     }
+}
 
-    // Scroll Reveal Animations
-    function reveal() {
-        var reveals = document.querySelectorAll(".reveal");
+// Función para solicitar las fotos al servidor
+async function cargarFotos(folderId) {
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+        const fotos = await response.json();
+        mostrarFotos(fotos);
+    } catch (error) {
+        console.error("Error cargando fotos:", error);
+        const contenedor = document.getElementById('galeria');
+        contenedor.innerHTML = '<p>Error al cargar las imágenes. Intenta más tarde.</p>';
+    }
+}
 
-        for (var i = 0; i < reveals.length; i++) {
-            var windowHeight = window.innerHeight;
-            var elementTop = reveals[i].getBoundingClientRect().top;
-            var elementVisible = 50;
+// --- FUNCIONES DE SOPORTE (Animaciones y UI) ---
 
-            if (elementTop < windowHeight - elementVisible) {
-                reveals[i].classList.add("active");
-            }
+async function cargarColegios() {
+    const select = document.getElementById('colegio');
+    if (!select) return;
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`);
+        const alumnos = await response.json();
+        
+        // Extraer colegios únicos
+        const colegios = [...new Set(alumnos.map(a => a.colegio.trim()))];
+        
+        select.innerHTML = '<option value="" disabled selected>Selecciona tu colegio</option>';
+        colegios.forEach(col => {
+            const opt = document.createElement('option');
+            opt.value = col;
+            opt.textContent = col;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Error cargando colegios:", error);
+        select.innerHTML = '<option value="" disabled selected>Error al cargar colegios</option>';
+    }
+}
+
+function reveal() {
+    const reveals = document.querySelectorAll(".reveal");
+    for (let i = 0; i < reveals.length; i++) {
+        const windowHeight = window.innerHeight;
+        const elementTop = reveals[i].getBoundingClientRect().top;
+        const elementVisible = 100;
+        if (elementTop < windowHeight - elementVisible) {
+            reveals[i].classList.add("active");
         }
     }
+}
 
-    window.addEventListener("scroll", reveal);
-    reveal(); // Trigger once on load
-
-    // Hero Parallax Effect
+function initParallax() {
     const parallaxImg = document.querySelector('.parallax-img');
     if (parallaxImg) {
         window.addEventListener('scroll', () => {
             const scrollPos = window.scrollY;
-            // Move the image slightly downwards as the user scrolls down
             parallaxImg.style.transform = `translateY(${scrollPos * 0.4}px)`;
         });
     }
 
-    // Hero Title Fade on Scroll
     const heroTitle = document.querySelector('.hero-title');
     if (heroTitle) {
         window.addEventListener('scroll', () => {
             const scrollPos = window.scrollY;
-            const threshold = window.innerHeight * 0.3; // 30% of viewport height
-            
-            // Calculate opacity: 1 at top, 0 at 30% scroll
+            const threshold = window.innerHeight * 0.3;
             let opacity = 1 - (scrollPos / threshold);
             if (opacity < 0) opacity = 0;
-            
             heroTitle.style.opacity = opacity;
         });
     }
-});
+}
+
+window.addEventListener("scroll", reveal);

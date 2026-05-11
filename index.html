@@ -54,7 +54,7 @@
         <section class="search-section" id="buscar-galeria">
             
             <!-- Login Bento Box -->
-            <div class="bento-box search-module reveal" id="login-container">
+            <div class="bento-box search-module reveal" id="login-section">
                 <div class="search-module-bg"></div>
                 <div class="search-module-content">
                     <h2>Tu galería está lista</h2>
@@ -68,7 +68,7 @@
                         </div>
                         
                         <div class="input-wrapper">
-                            <input list="alumnos-list" id="nombreAlumno" class="login-input" placeholder="Nombre del Alumno (Selecciona colegio primero)" disabled>
+                            <input list="alumnos-list" id="nombre" class="login-input" placeholder="Nombre del Alumno (Selecciona colegio primero)">
                             <datalist id="alumnos-list">
                                 <!-- Las opciones se cargarán dinámicamente -->
                             </datalist>
@@ -78,7 +78,7 @@
                             <input type="password" id="clave" class="login-input" placeholder="Clave de acceso">
                         </div>
                         
-                        <button id="btnEntrar" class="btn-solid-gold w-100 mt-3">
+                        <button id="btnEntrar" class="btn-solid-gold w-100 mt-3" onclick="login()">
                             <span id="btnEntrarText">Entrar a mi galería</span>
                             <i data-lucide="arrow-right"></i>
                         </button>
@@ -88,10 +88,10 @@
             </div>
 
             <!-- Gallery Container (Hidden by default) -->
-            <div id="gallery-container" class="gallery-container hidden">
+            <div id="galeria-section" class="gallery-container hidden">
                 <div class="gallery-header">
                     <div>
-                        <h2 id="gallery-title">Galería de <span id="student-name-display" class="highlight"></span></h2>
+                        <h2 id="gallery-title">Galería de <span id="nombre-usuario" class="highlight"></span></h2>
                         <p class="gallery-subtitle">Revive tus mejores momentos con estilo editorial.</p>
                     </div>
                     <button id="btnDownloadAll" class="btn-outline-white" style="backdrop-filter: none;">
@@ -99,7 +99,7 @@
                     </button>
                 </div>
                 
-                <div id="masonry-grid" class="masonry-grid">
+                <div id="galeria" class="masonry-grid">
                     <!-- Las imágenes se insertarán aquí dinámicamente -->
                 </div>
             </div>
