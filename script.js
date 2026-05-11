@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Manejo del Login (Local Validation)
+    // 2. Manejo del Login (Robust Local Validation)
     btnEntrar.addEventListener('click', async () => {
         const nombreIngresado = alumnoInput.value.trim();
         const claveIngresada = claveInput.value.trim();
@@ -90,18 +90,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             console.log("Intentando conectar con Apps Script...");
             
-            // Usamos el fetch corregido para evitar problemas de CORS
-            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegioSeleccionado)}`);
+            // La URL de acción para obtener todos los alumnos/datos
+            const url = `${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegioSeleccionado)}`;
+            const response = await fetch(url);
             
-            if (!response.ok) {
-                throw new Error("Error en la respuesta del servidor");
-            }
+            if (!response.ok) throw new Error("Error en la respuesta del servidor");
 
             const alumnos = await response.json();
-            console.log("Datos recibidos correctamente:", alumnos);
+            console.log("Datos recibidos:", alumnos);
 
-            // Buscamos al alumno con validación robusta (espacios, minúsculas)
-            // Se asume que el objeto alumno tiene: nombre, clave, colegio, folderId (o idGaleria), y fotos
+            // Buscamos al alumno ignorando mayúsculas/minúsculas y espacios accidentales
             const alumno = alumnos.find(a => 
                 (a.nombre || "").trim().toLowerCase() === nombreIngresado.toLowerCase() && 
                 (a.clave || "").toString() === claveIngresada.toString()
@@ -111,28 +109,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Login exitoso para:", alumno.nombre);
                 showFeedback("¡Bienvenido!", "success");
                 
-                // Guardamos datos importantes
-                currentFolderId = alumno.folderId || alumno.idDescarga || "";
+                // Guardamos los datos en sessionStorage para persistencia en la sesión
+                sessionStorage.setItem('usuarioLogueado', JSON.stringify(alumno));
+                currentFolderId = alumno.folderId || alumno.idGaleria || alumno.idDescarga || "";
                 
-                // Ocultar buscador, mostrar galería
+                // Cambiar vista
                 setTimeout(() => {
                     loginContainer.style.display = 'none';
                     studentNameDisplay.innerText = alumno.nombre;
                     galleryContainer.classList.remove('hidden');
+                    window.location.hash = "galeria";
                     
-                    // Renderizamos las fotos (asumiendo que vienen en el objeto alumno)
+                    // Renderizamos las fotos (vienen en el objeto del alumno)
                     renderGallery(alumno.fotos || []);
                     
-                    // Trigger scroll reveal
                     reveal();
                 }, 500);
             } else {
-                showFeedback("Usuario o clave incorrectos. Revisa los espacios y mayúsculas.", "error");
+                showFeedback("Nombre o clave incorrectos para este colegio.", "error");
             }
 
         } catch (error) {
             console.error("Error detallado:", error);
-            showFeedback("Hubo un problema al conectar con la base de datos.", "error");
+            showFeedback("Error al conectar. Intenta recargar la página.", "error");
         } finally {
             btnEntrar.disabled = false;
             document.getElementById('btnEntrarText').innerText = "Entrar a mi galería";
