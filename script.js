@@ -27,7 +27,6 @@ function mostrarFotos(fotos) {
     }
 
     fotos.forEach(foto => {
-        // Usamos la URL optimizada que viene directamente de tu Apps Script
         const urlVisualizacion = foto.url;
 
         const div = document.createElement('div');
@@ -38,20 +37,7 @@ function mostrarFotos(fotos) {
         img.alt = foto.nombre || "Foto de galería";
         img.loading = "lazy"; 
 
-        const overlay = document.createElement('div');
-        overlay.className = 'masonry-overlay';
-        
-        const link = document.createElement('a');
-        link.href = `https://drive.google.com/uc?export=view&id=${foto.id}`;
-        link.target = "_blank";
-        link.className = "btn-outline-white";
-        link.style.padding = "10px 20px";
-        link.style.fontSize = "0.8rem";
-        link.textContent = 'Ver pantalla completa';
-
-        overlay.appendChild(link);
         div.appendChild(img);
-        div.appendChild(overlay);
         contenedor.appendChild(div);
     });
 
@@ -99,10 +85,12 @@ async function login() {
             // Cargamos las fotos usando el idGaleria registrado en el Excel
             cargarFotos(alumno.idGaleria);
 
-            // Configurar botón de descarga con la carpeta ZIP del alumno
+            // Configurar botones de descarga con la carpeta ZIP del alumno
             const btnDownload = document.getElementById('btnDownloadAll');
-            if (btnDownload && alumno.idDescarga) {
-                btnDownload.onclick = () => descargarZip(alumno.idDescarga);
+            const btnDownloadBottom = document.getElementById('btnDownloadBottom');
+            if (alumno.idDescarga) {
+                if (btnDownload) btnDownload.onclick = () => descargarZip(alumno.idDescarga);
+                if (btnDownloadBottom) btnDownloadBottom.onclick = () => descargarZip(alumno.idDescarga);
             }
             
             // Scroll suave a la galería

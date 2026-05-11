@@ -512,6 +512,47 @@ a {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Gallery Footer & Download Button */
+.gallery-footer {
+    display: flex;
+    justify-content: center;
+    padding: 60px 0 40px;
+}
+
+.btn-download-gallery {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #D81E2E;
+    color: #FFFFFF;
+    border: none;
+    padding: 18px 48px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(216, 30, 46, 0.3);
+}
+
+.btn-download-gallery:hover {
+    background-color: #9BC416;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(155, 196, 22, 0.4);
+}
+
+.btn-download-gallery:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-download-gallery i {
+    width: 22px;
+    height: 22px;
+}
+
 /* Loading Skeleton */
 .loading-skeleton {
     display: grid;
