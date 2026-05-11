@@ -165,6 +165,21 @@ async function descargarZip(folderId) {
 // Función para solicitar las fotos al servidor
 async function cargarFotos(folderId) {
     console.log("Iniciando carga de fotos para el folder:", folderId);
+    const contenedor = document.getElementById('galeria');
+    
+    // Mostrar skeleton de carga mientras se obtienen las fotos
+    contenedor.innerHTML = `
+        <div class="loading-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card tall"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card tall"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+        <p class="loading-text">Cargando tu galería<span class="dots"></span></p>
+    `;
+
     try {
         const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`, {
             method: 'GET',
@@ -175,8 +190,7 @@ async function cargarFotos(folderId) {
         mostrarFotos(fotos);
     } catch (error) {
         console.error("Error cargando fotos:", error);
-        const contenedor = document.getElementById('galeria');
-        contenedor.innerHTML = '<p>Error al cargar las imágenes. Intenta más tarde.</p>';
+        contenedor.innerHTML = '<p class="loading-text">Error al cargar las imágenes. Intenta más tarde.</p>';
     }
 }
 

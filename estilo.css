@@ -512,6 +512,59 @@ a {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Loading Skeleton */
+.loading-skeleton {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .loading-skeleton { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .loading-skeleton { grid-template-columns: 1fr; }
+}
+
+.skeleton-card {
+    background: linear-gradient(110deg, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+    border-radius: 8px;
+    height: 220px;
+}
+
+.skeleton-card.tall {
+    height: 320px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.loading-text {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-top: 32px;
+    font-family: var(--font-body);
+}
+
+.dots::after {
+    content: '';
+    animation: loadDots 1.5s steps(4, end) infinite;
+}
+
+@keyframes loadDots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+}
+
 /* Why Usman Section */
 .why-usman {
     padding: 100px 24px;
