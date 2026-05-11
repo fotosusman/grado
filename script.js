@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadUrl = `https://drive.google.com/drive/u/0/folders/${currentFolderId}?authuser=0&export=download`;
             window.open(downloadUrl, '_blank');
         } else {
-            showFeedback("Error: No se encontró el ID de la carpeta.", "error");
+            showFeedback("Error: No se pudo obtener el ID de la carpeta. Intenta iniciar sesión de nuevo.", "error");
         }
     });
 
