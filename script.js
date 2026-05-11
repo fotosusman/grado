@@ -157,18 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             img.src = url;
             img.loading = "lazy";
             
-            const overlay = document.createElement('div');
-            overlay.className = 'masonry-overlay';
-            overlay.innerHTML = '<i data-lucide="zoom-in"></i>';
-            
             item.appendChild(img);
-            item.appendChild(overlay);
-            
-            item.addEventListener('click', () => {
-                // Abre la imagen en una nueva pestaña
-                window.open(url, '_blank');
-            });
-            
             masonryGrid.appendChild(item);
         });
         
@@ -180,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Descargar Todo
     btnDownloadAll.addEventListener('click', () => {
         if(currentFolderId) {
-            // El enlace directo para abrir la carpeta en Drive
-            const driveUrl = `https://drive.google.com/drive/folders/${currentFolderId}`;
+            // El enlace directo para abrir la carpeta en Drive (u/0/ especificado por el usuario)
+            const driveUrl = `https://drive.google.com/drive/u/0/folders/${currentFolderId}`;
             window.open(driveUrl, '_blank');
         }
     });
