@@ -27,8 +27,8 @@ function mostrarFotos(fotos) {
     }
 
     fotos.forEach(foto => {
-        // CORRECCIÓN: Se construye la URL usando el ID del archivo de Google Drive
-        const urlVisualizacion = `https://drive.google.com/uc?export=view&id=${foto.id}`;
+        // Usamos la URL optimizada que viene directamente de tu Apps Script
+        const urlVisualizacion = foto.url;
 
         const div = document.createElement('div');
         div.className = 'masonry-item reveal';
@@ -42,7 +42,7 @@ function mostrarFotos(fotos) {
         overlay.className = 'masonry-overlay';
         
         const link = document.createElement('a');
-        link.href = urlVisualizacion;
+        link.href = `https://drive.google.com/uc?export=view&id=${foto.id}`;
         link.target = "_blank";
         link.className = "btn-outline-white";
         link.style.padding = "10px 20px";
