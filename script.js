@@ -169,11 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Descargar Todo
     btnDownloadAll.addEventListener('click', () => {
         if(currentFolderId) {
-            // Este enlace intenta forzar a Google Drive a preparar un ZIP de la carpeta
-            const altDownloadUrl = `https://drive.google.com/u/0/uc?id=${currentFolderId}&export=download`;
-            window.open(altDownloadUrl, '_blank');
+            // Este link fuerza la preparación del ZIP en la interfaz de Drive
+            const downloadUrl = `https://drive.google.com/drive/u/0/folders/${currentFolderId}?authuser=0&export=download`;
+            window.open(downloadUrl, '_blank');
         } else {
-            showFeedback("Primero debes iniciar sesión para obtener el enlace.", "error");
+            showFeedback("Error: No se encontró el ID de la carpeta.", "error");
         }
     });
 
