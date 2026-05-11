@@ -116,12 +116,14 @@ async function login() {
 
 // Función para solicitar las fotos al servidor
 async function cargarFotos(folderId) {
+    console.log("Iniciando carga de fotos para el folder:", folderId);
     try {
         const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`, {
             method: 'GET',
             redirect: 'follow'
         });
         const fotos = await response.json();
+        console.log("Fotos recibidas del servidor:", fotos);
         mostrarFotos(fotos);
     } catch (error) {
         console.error("Error cargando fotos:", error);
