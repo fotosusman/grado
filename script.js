@@ -73,59 +73,71 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Manejo del Login
+    // 2. Manejo del Login (Local Validation)
     btnEntrar.addEventListener('click', async () => {
-        const colegio = colegioSelect.value;
-        const nombre = alumnoInput.value.trim();
-        const clave = claveInput.value.trim();
+        const nombreIngresado = alumnoInput.value.trim();
+        const claveIngresada = claveInput.value.trim();
+        const colegioSeleccionado = colegioSelect.value;
 
-        if (!colegio || !nombre || !clave) return;
+        if (!colegioSeleccionado || !nombreIngresado || !claveIngresada) {
+            showFeedback("Por favor, completa todos los campos.", "error");
+            return;
+        }
 
         btnEntrar.disabled = true;
         document.getElementById('btnEntrarText').innerText = "Validando...";
 
         try {
-            const url = `${API_URL}?nombre=${encodeURIComponent(nombre)}&clave=${encodeURIComponent(clave)}&colegio=${encodeURIComponent(colegio)}`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Error en la red');
-            const data = await response.json();
-
-            if (data.error) {
-                showFeedback(data.error, "error");
-            } else {
-                // Si todo está bien, muestra las fotos que devolvió el script
-                handleLoginResponse(data);
+            console.log("Intentando conectar con Apps Script...");
+            
+            // Usamos el fetch corregido para evitar problemas de CORS
+            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegioSeleccionado)}`);
+            
+            if (!response.ok) {
+                throw new Error("Error en la respuesta del servidor");
             }
+
+            const alumnos = await response.json();
+            console.log("Datos recibidos correctamente:", alumnos);
+
+            // Buscamos al alumno con validación robusta (espacios, minúsculas)
+            // Se asume que el objeto alumno tiene: nombre, clave, colegio, folderId (o idGaleria), y fotos
+            const alumno = alumnos.find(a => 
+                (a.nombre || "").trim().toLowerCase() === nombreIngresado.toLowerCase() && 
+                (a.clave || "").toString() === claveIngresada.toString()
+            );
+
+            if (alumno) {
+                console.log("Login exitoso para:", alumno.nombre);
+                showFeedback("¡Bienvenido!", "success");
+                
+                // Guardamos datos importantes
+                currentFolderId = alumno.folderId || alumno.idDescarga || "";
+                
+                // Ocultar buscador, mostrar galería
+                setTimeout(() => {
+                    loginContainer.style.display = 'none';
+                    studentNameDisplay.innerText = alumno.nombre;
+                    galleryContainer.classList.remove('hidden');
+                    
+                    // Renderizamos las fotos (asumiendo que vienen en el objeto alumno)
+                    renderGallery(alumno.fotos || []);
+                    
+                    // Trigger scroll reveal
+                    reveal();
+                }, 500);
+            } else {
+                showFeedback("Usuario o clave incorrectos. Revisa los espacios y mayúsculas.", "error");
+            }
+
         } catch (error) {
-            console.error("Error de conexión:", error);
-            showFeedback("Error de conexión con el servidor.", "error");
+            console.error("Error detallado:", error);
+            showFeedback("Hubo un problema al conectar con la base de datos.", "error");
         } finally {
             btnEntrar.disabled = false;
             document.getElementById('btnEntrarText').innerText = "Entrar a mi galería";
         }
     });
-
-    function handleLoginResponse(response) {
-        btnEntrar.disabled = false;
-        document.getElementById('btnEntrarText').innerText = "Entrar a mi galería";
-
-        if (response.error) {
-            showFeedback(response.error, "error");
-        } else {
-            // Éxito
-            showFeedback("¡Bienvenido!", "success");
-            currentFolderId = response.folderId;
-            
-            // Ocultar buscador, mostrar galería
-            setTimeout(() => {
-                loginContainer.style.display = 'none';
-                studentNameDisplay.innerText = alumnoInput.value;
-                galleryContainer.classList.remove('hidden');
-                renderGallery(response.fotos);
-                // Si la función reveal() se encarga, podrías llamarla aquí también
-            }, 500);
-        }
-    }
 
     function handleError(error) {
         btnEntrar.disabled = false;
