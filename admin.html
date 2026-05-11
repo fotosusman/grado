@@ -327,7 +327,11 @@
 
         async function loadUsers() {
             try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllUsers`);
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllUsers`, {
+                    method: "GET",
+                    mode: "cors",
+                    redirect: "follow"
+                });
                 if (!response.ok) throw new Error('Error en la red');
                 const users = await response.json();
                 const tbody = document.getElementById('usersTableBody');

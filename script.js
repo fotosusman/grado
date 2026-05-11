@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarColegios() {
         const colegioSelect = document.getElementById('colegio');
         try {
-            const response = await fetch(`${API_URL}?action=getColegios`);
+            const response = await fetch(`${API_URL}?action=getColegios`, {
+                method: "GET",
+                mode: "cors",
+                redirect: "follow"
+            });
             if (!response.ok) throw new Error('Error en la red');
             const data = await response.json();
             
@@ -50,7 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // Pedimos los alumnos del colegio seleccionado a tu API de Google
-            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegio)}`);
+            const response = await fetch(`${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegio)}`, {
+                method: "GET",
+                mode: "cors",
+                redirect: "follow"
+            });
             if (!response.ok) throw new Error('Error en la red');
             const alumnos = await response.json();
             
@@ -92,17 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // La URL de acción para obtener todos los alumnos/datos
             const url = `${API_URL}?action=getAlumnos&colegio=${encodeURIComponent(colegioSeleccionado)}`;
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                method: "GET",
+                mode: "cors",
+                redirect: "follow"
+            });
             
             if (!response.ok) throw new Error("Error en la respuesta del servidor");
 
             const alumnos = await response.json();
             console.log("Datos recibidos:", alumnos);
 
-            // Buscamos al alumno ignorando mayúsculas/minúsculas y espacios accidentales
+            // Buscamos al alumno ignorando mayúsculas/minúsculas y espacios accidentales ("espacios fantasmas")
             const alumno = alumnos.find(a => 
-                (a.nombre || "").trim().toLowerCase() === nombreIngresado.toLowerCase() && 
-                (a.clave || "").toString() === claveIngresada.toString()
+                (a.nombre || "").trim().toLowerCase() === nombreIngresado.trim().toLowerCase() && 
+                (a.clave || "").toString().trim() === claveIngresada.trim()
             );
 
             if (alumno) {
