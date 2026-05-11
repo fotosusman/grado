@@ -1,9 +1,12 @@
 // 1. URL de tu implementación (Actualizada a tu enlace más reciente)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
 
+// Variable global para almacenar todos los alumnos (evita llamadas repetidas)
+let todosLosAlumnos = [];
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-    cargarColegios();
+    cargarColegiosYAlumnos();
     reveal();
     initParallax();
     
@@ -87,8 +90,10 @@ async function login() {
 
         if (alumno) {
             console.log("Login exitoso para:", alumno.nombre);
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('galeria-section').style.display = 'block';
+            // CORRECCIÓN: Usar classList en vez de style.display
+            // porque .hidden usa !important y bloquea el inline style
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('galeria-section').classList.remove('hidden');
             document.getElementById('nombre-usuario').textContent = alumno.nombre;
 
             // Cargamos las fotos usando el idGaleria registrado en el Excel
@@ -127,13 +132,19 @@ async function cargarFotos(folderId) {
 
 // --- FUNCIONES DE SOPORTE (Animaciones y UI) ---
 
-async function cargarColegios() {
+async function cargarColegiosYAlumnos() {
     const select = document.getElementById('colegio');
     if (!select) return;
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`);
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
         const alumnos = await response.json();
+        
+        // Guardar todos los alumnos en variable global
+        todosLosAlumnos = alumnos;
         
         // Extraer colegios únicos
         const colegios = [...new Set(alumnos.map(a => a.colegio.trim()))];
@@ -145,10 +156,42 @@ async function cargarColegios() {
             opt.textContent = col;
             select.appendChild(opt);
         });
+
+        // Escuchar cambios en el select para filtrar nombres
+        select.addEventListener('change', () => {
+            filtrarNombresPorColegio(select.value);
+        });
+
     } catch (error) {
         console.error("Error cargando colegios:", error);
         select.innerHTML = '<option value="" disabled selected>Error al cargar colegios</option>';
     }
+}
+
+// Poblar el datalist de nombres filtrado por el colegio seleccionado
+function filtrarNombresPorColegio(colegioSeleccionado) {
+    const datalist = document.getElementById('alumnos-list');
+    const inputNombre = document.getElementById('nombre');
+    if (!datalist || !inputNombre) return;
+
+    // Limpiar datalist y el input
+    datalist.innerHTML = '';
+    inputNombre.value = '';
+    inputNombre.placeholder = 'Escribe tu nombre...';
+
+    // Filtrar alumnos del colegio seleccionado
+    const alumnosFiltrados = todosLosAlumnos.filter(
+        a => a.colegio.trim() === colegioSeleccionado.trim()
+    );
+
+    // Agregar opciones al datalist
+    alumnosFiltrados.forEach(a => {
+        const option = document.createElement('option');
+        option.value = a.nombre.trim();
+        datalist.appendChild(option);
+    });
+
+    console.log(`Autocompletado: ${alumnosFiltrados.length} alumnos para "${colegioSeleccionado}"`);
 }
 
 function reveal() {
