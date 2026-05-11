@@ -296,9 +296,8 @@
                 const processedFiles = await Promise.all(filePromises);
 
                 // Enviar datos vía POST a Google Apps Script
-                await fetch(APPS_SCRIPT_URL, {
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
                     body: JSON.stringify({
                         action: 'createGallery',
                         colegio: colegio,
@@ -308,9 +307,15 @@
                     })
                 });
 
-                // Con no-cors no podemos leer la respuesta, pero si no hay error, asumimos éxito
-                status.style.color = "green";
-                status.innerText = "¡Petición enviada! Verifica tu Excel y Drive en unos segundos.";
+                const result = await response.json();
+
+                if (result.error) {
+                    status.style.color = "red";
+                    status.innerText = "Error: " + result.error;
+                } else {
+                    status.style.color = "green";
+                    status.innerText = "¡Alumno registrado y fotos subidas con éxito!";
+                }
                 
                 // Limpiar campos
                 document.getElementById('adminColegio').value = "";
@@ -334,6 +339,7 @@
         async function loadUsers() {
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllUsers`);
+                if (!response.ok) throw new Error('Error en la red');
                 const users = await response.json();
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = "";
