@@ -114,7 +114,10 @@ async function autoLogin(nombreUrl) {
     console.log("Iniciando sesión automática para:", nombreUrl);
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`);
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
         const alumnos = await response.json();
 
         // Buscamos al alumno comparando el nombre (sin espacios y en minúsculas para evitar errores)
@@ -142,7 +145,10 @@ async function cargarPortadaPixieset(nombreUrl) {
     const URL_SERVICIO_PORTADAS = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
 
     try {
-        const response = await fetch(`${URL_SERVICIO_PORTADAS}?action=getCover&id=${nombreUrl}`);
+        const response = await fetch(`${URL_SERVICIO_PORTADAS}?action=getCover&id=${nombreUrl}`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
         const data = await response.json();
 
         if (data.nombre) {
