@@ -800,6 +800,49 @@ a {
     }
 }
 
+/* Infinite Ticker Styles */
+.ticker-wrapper {
+    width: 100%;
+    overflow: hidden;
+    background: var(--gold);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.ticker {
+    display: flex;
+    white-space: nowrap;
+    width: fit-content;
+    animation: ticker-scroll 30s linear infinite;
+}
+
+.ticker-item {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    color: #FFFFFF;
+    padding: 0 40px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: inline-block;
+}
+
+@keyframes ticker-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.ticker:hover {
+    animation-play-state: paused;
+}
+
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
