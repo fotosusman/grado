@@ -17,27 +17,30 @@
 </head>
 
 <body>
-    <div id="hero-pixieset" class="hero-container">
-
-        <div class="hero-content">
-            <h1 id="hero-nombre">Nombre del Alumno</h1>
-            <p>Tu historia capturada por Usman Mancera</p>
-            <div class="hero-buttons">
-                <a href="#galeria" class="btn-scroll">Ver Galería</a>
-                <a id="btn-descarga-zip" href="#" class="btn-zip" target="_blank">
-                    <i class="fas fa-download"></i> Descargar Todo (.ZIP)
-                </a>
-            </div>
-        </div>
+    <section id="hero-pixieset" class="hero-full">
         <div id="hero-bg" class="hero-background"></div>
-    </div>
+        <div class="hero-content">
+            <h1 id="hero-nombre">Cargando...</h1>
+            <p>Introduce tu clave para desbloquear tu galería completa</p>
 
-    <!-- Gallery Section -->
-    <section id="galeria-section" class="gallery-container">
-        <div id="galeria" class="masonry-grid">
-            <!-- Images will be loaded here -->
+            <div class="access-box">
+                <input type="password" id="clave" placeholder="Introduce tu clave aquí">
+                <button onclick="login()">Ver mis fotos</button>
+            </div>
+            <p id="statusMsg" class="status-message"></p>
         </div>
     </section>
 
+    <section id="galeria-section" class="hidden">
+        <div class="gallery-header-controls">
+             <a id="btn-descarga-zip" href="#" class="btn-zip" target="_blank" style="display:none;">
+                <i class="fas fa-download"></i> Descargar Todo (.ZIP)
+            </a>
+        </div>
+        <div id="galeria" class="masonry-grid"></div>
+    </section>
+
     <script src="galeria.js"></script>
-</body>
+</body>
+
+</html>
