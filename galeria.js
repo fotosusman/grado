@@ -113,32 +113,46 @@ window.onload = function () {
 async function autoLogin(nombreUrl) {
     console.log("Iniciando sesión automática para:", nombreUrl);
 
+    // Añadimos un timestamp para evitar caché de Google
+    const cacheBuster = "&t=" + new Date().getTime();
+    const url = `${SCRIPT_URL}?action=getAlumnos${cacheBuster}`;
+
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
+        const response = await fetch(url, {
             method: 'GET',
             redirect: 'follow'
         });
+        
+        if (!response.ok) throw new Error('Error en la respuesta del servidor');
+        
         const alumnos = await response.json();
 
-        // Buscamos al alumno comparando el nombre (sin espacios y en minúsculas para evitar errores)
+        // Buscamos al alumno comparando el nombre (sin espacios y en minúsculas)
         const alumno = alumnos.find(a =>
             a.nombre.replace(/\s+/g, '').toLowerCase() === nombreUrl.toLowerCase()
         );
 
         if (alumno) {
             // Ocultamos el login y mostramos la galería directamente
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('galeria-section').style.display = 'block';
-            document.getElementById('nombre-usuario').textContent = alumno.nombre;
+            const loginSec = document.getElementById('login-section');
+            const galSec = document.getElementById('galeria-section');
+            if (loginSec) loginSec.style.display = 'none';
+            if (galSec) galSec.style.display = 'block';
+            
+            const userLabel = document.getElementById('nombre-usuario');
+            if (userLabel) userLabel.textContent = alumno.nombre;
 
             // Cargamos la portada Pixieset y la galería
             cargarPortadaPixieset(alumno.nombre);
             cargarFotos(alumno.idGaleria);
+        } else {
+            console.warn("Alumno no encontrado en la base de datos:", nombreUrl);
         }
     } catch (error) {
         console.error("Error en auto-login:", error);
     }
 }
+
 
 async function cargarPortadaPixieset(nombreUrl) {
     // IMPORTANTE: Asegúrate de que esta URL termine en /exec
