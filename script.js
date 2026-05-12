@@ -39,16 +39,7 @@ function mostrarFotos(fotos) {
 
         div.appendChild(img);
         contenedor.appendChild(div);
-
-        // Si es la primera foto, ponerla como fondo del hero
-        if (fotos.indexOf(foto) === 0) {
-            const heroBg = document.getElementById('hero-bg');
-            if (heroBg) {
-                heroBg.style.backgroundImage = `url('${urlVisualizacion}')`;
-            }
-        }
     });
-
 
     // Re-activar animaciones para las fotos cargadas
     setTimeout(reveal, 100);
@@ -90,10 +81,6 @@ async function login() {
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('galeria-section').classList.remove('hidden');
             document.getElementById('nombre-usuario').textContent = alumno.nombre;
-            
-            // Actualizar el nuevo Hero Pixieset
-            const heroNombre = document.getElementById('hero-nombre');
-            if (heroNombre) heroNombre.textContent = alumno.nombre;
 
             // Cargamos las fotos usando el idGaleria registrado en el Excel
             cargarFotos(alumno.idGaleria);
@@ -101,30 +88,20 @@ async function login() {
             // Configurar botones de descarga con la carpeta ZIP del alumno
             const btnDownload = document.getElementById('btnDownloadAll');
             const btnDownloadBottom = document.getElementById('btnDownloadBottom');
-            const btnZipHero = document.getElementById('btn-descarga-zip');
-            
             if (alumno.idDescarga) {
-                const descargaFn = (e) => {
-                    if (e) e.preventDefault();
-                    descargarZip(alumno.idDescarga);
-                };
+                const descargaFn = () => descargarZip(alumno.idDescarga);
                 if (btnDownload) btnDownload.onclick = descargaFn;
                 if (btnDownloadBottom) btnDownloadBottom.onclick = descargaFn;
-                if (btnZipHero) btnZipHero.onclick = descargaFn;
                 console.log("Botones de descarga configurados con folder:", alumno.idDescarga);
             }
 
-            // Re-inicializar iconos de Lucide
+            // Re-inicializar iconos de Lucide para el botón inferior
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
-            // Scroll suave al inicio de la galería (el nuevo hero)
+            // Scroll suave a la galería
             setTimeout(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                // Ocultar el header principal para dar protagonismo a la galería
-                const header = document.querySelector('.header');
-                if (header) header.style.transform = 'translateY(-100%)';
+                document.getElementById('galeria-section').scrollIntoView({ behavior: 'smooth' });
             }, 100);
-
         } else {
             alert("Datos incorrectos. Verifica tu colegio, nombre o clave.");
         }
