@@ -804,13 +804,14 @@ a {
 .ticker-wrapper {
     width: 100%;
     overflow: hidden;
-    background: var(--gold);
+    background: #000000;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 15px 0;
     position: relative;
     z-index: 10;
 }
+
 
 .ticker {
     display: flex;
