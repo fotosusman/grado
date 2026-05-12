@@ -155,14 +155,13 @@ async function autoLogin(nombreUrl) {
 
 
 async function cargarPortadaPixieset(nombreUrl) {
-    // IMPORTANTE: Asegúrate de que esta URL termine en /exec
-    const URL_SERVICIO_PORTADAS = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
-
+    // Usamos la misma variable global SCRIPT_URL
     try {
-        const response = await fetch(`${URL_SERVICIO_PORTADAS}?action=getCover&id=${nombreUrl}`, {
+        const response = await fetch(`${SCRIPT_URL}?action=getCover&id=${nombreUrl}`, {
             method: 'GET',
             redirect: 'follow'
         });
+
         const data = await response.json();
 
         if (data.nombre) {
