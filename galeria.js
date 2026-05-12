@@ -3,7 +3,7 @@
  * Logic for the Pixieset Style Gallery
  */
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
 
 document.addEventListener('DOMContentLoaded', () => {
     // Detectar parámetros en la URL (por si quieres pasar el ID del alumno)
@@ -39,7 +39,7 @@ async function cargarFotos(folderId) {
             redirect: 'follow'
         });
         const fotos = await response.json();
-        
+
         mostrarFotos(fotos);
     } catch (error) {
         console.error("Error cargando fotos:", error);
@@ -99,4 +99,40 @@ window.addEventListener("scroll", reveal);
 async function descargarZip(folderId) {
     // Lógica similar a script.js para descargar el archivo ZIP
     console.log("Iniciando descarga ZIP para:", folderId);
+}
+// Al cargar la página, revisa si hay un usuario en el link
+window.onload = function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const usuarioLink = urlParams.get('user'); // Lee lo que sigue de ?user=
+
+    if (usuarioLink) {
+        autoLogin(usuarioLink);
+    }
+};
+
+async function autoLogin(nombreUrl) {
+    console.log("Iniciando sesión automática para:", nombreUrl);
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`);
+        const alumnos = await response.json();
+
+        // Buscamos al alumno comparando el nombre (sin espacios y en minúsculas para evitar errores)
+        const alumno = alumnos.find(a =>
+            a.nombre.replace(/\s+/g, '').toLowerCase() === nombreUrl.toLowerCase()
+        );
+
+        if (alumno) {
+            // Ocultamos el login y mostramos la galería directamente
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('galeria-section').style.display = 'block';
+            document.getElementById('nombre-usuario').textContent = alumno.nombre;
+
+            // Cargamos la portada Pixieset y la galería
+            cargarPortadaPixieset(alumno.nombre);
+            cargarFotos(alumno.idGaleria);
+        }
+    } catch (error) {
+        console.error("Error en auto-login:", error);
+    }
 }
