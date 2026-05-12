@@ -136,3 +136,29 @@ async function autoLogin(nombreUrl) {
         console.error("Error en auto-login:", error);
     }
 }
+
+async function cargarPortadaPixieset(nombreUrl) {
+    // IMPORTANTE: Asegúrate de que esta URL termine en /exec
+    const URL_SERVICIO_PORTADAS = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
+
+    try {
+        const response = await fetch(`${URL_SERVICIO_PORTADAS}?action=getCover&id=${nombreUrl}`);
+        const data = await response.json();
+
+        if (data.nombre) {
+            console.log("Datos recibidos correctamente:", data);
+            
+            // 1. Cambiamos el texto del nombre
+            document.getElementById('hero-nombre').textContent = data.nombre;
+            
+            // 2. Cargamos la imagen de fondo si existe ID en columna G
+            if (data.idPortada) {
+                const imgUrl = `https://drive.google.com/uc?export=view&id=${data.idPortada}`;
+                document.getElementById('hero-bg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${imgUrl}')`;
+            }
+        }
+    } catch (error) {
+        console.error("Error cargando portada:", error);
+    }
+}
+
