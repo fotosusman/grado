@@ -38,9 +38,11 @@ async function cargarFotos(folderId) {
             method: 'GET',
             redirect: 'follow'
         });
-        const fotos = await response.json();
+        const text = await response.text();
+        const fotos = JSON.parse(text);
 
         mostrarFotos(fotos);
+
     } catch (error) {
         console.error("Error cargando fotos:", error);
         contenedor.innerHTML = '<p class="loading-text">Error al conectar con el servidor.</p>';
@@ -113,27 +115,27 @@ window.onload = function () {
 async function autoLogin(nombreUrl) {
     console.log("Iniciando sesión automática para:", nombreUrl);
 
-    // Añadimos un timestamp para evitar caché de Google
     const cacheBuster = "&t=" + new Date().getTime();
     const url = `${SCRIPT_URL}?action=getAlumnos${cacheBuster}`;
 
     try {
+        // Petición ultra-simple para evitar pre-checks del navegador
         const response = await fetch(url, {
             method: 'GET',
             redirect: 'follow'
         });
         
-        if (!response.ok) throw new Error('Error en la respuesta del servidor');
+        if (!response.ok) throw new Error('Error en el servidor');
         
-        const alumnos = await response.json();
+        // Leemos como texto y parseamos después para mayor compatibilidad
+        const text = await response.text();
+        const alumnos = JSON.parse(text);
 
-        // Buscamos al alumno comparando el nombre (sin espacios y en minúsculas)
         const alumno = alumnos.find(a =>
             a.nombre.replace(/\s+/g, '').toLowerCase() === nombreUrl.toLowerCase()
         );
 
         if (alumno) {
-            // Ocultamos el login y mostramos la galería directamente
             const loginSec = document.getElementById('login-section');
             const galSec = document.getElementById('galeria-section');
             if (loginSec) loginSec.style.display = 'none';
@@ -142,16 +144,16 @@ async function autoLogin(nombreUrl) {
             const userLabel = document.getElementById('nombre-usuario');
             if (userLabel) userLabel.textContent = alumno.nombre;
 
-            // Cargamos la portada Pixieset y la galería
             cargarPortadaPixieset(alumno.nombre);
             cargarFotos(alumno.idGaleria);
         } else {
-            console.warn("Alumno no encontrado en la base de datos:", nombreUrl);
+            console.warn("Alumno no encontrado:", nombreUrl);
         }
     } catch (error) {
         console.error("Error en auto-login:", error);
     }
 }
+
 
 
 async function cargarPortadaPixieset(nombreUrl) {
@@ -162,9 +164,11 @@ async function cargarPortadaPixieset(nombreUrl) {
             redirect: 'follow'
         });
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = JSON.parse(text);
 
         if (data.nombre) {
+
             console.log("Datos recibidos correctamente:", data);
             
             // 1. Cambiamos el texto del nombre
