@@ -192,26 +192,20 @@
                     <label for="adminNombre">Nombre del Alumno</label>
                     <input type="text" id="adminNombre" class="admin-input" placeholder="Nombre Completo" required>
                 </div>
-                <div class="form-group full">
+                <div class="form-group">
                     <label for="adminClave">Clave de Acceso</label>
                     <input type="text" id="adminClave" class="admin-input" placeholder="Define una clave segura" required>
                 </div>
-
-                <div class="form-group full" style="background:#f4f4f4; padding:15px; border-radius:8px;">
-                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <input type="checkbox" id="adminPagado" onchange="document.getElementById('adminTelefono').style.display = this.checked ? 'block' : 'none';" style="width:20px; height:20px;">
-                        <span>Alumno Pagado (Activar envío de WhatsApp con galería y contraseña)</span>
-                    </label>
-                    <input type="text" id="adminTelefono" class="admin-input" placeholder="Teléfono (Ej: 573001234567)" style="display:none; margin-top:10px; width:100%;">
+                <div class="form-group">
+                    <label for="adminTelefono">Teléfono del Alumno (Venezuela)</label>
+                    <input type="text" id="adminTelefono" class="admin-input" placeholder="Ej: 04121234567">
                 </div>
 
-                <div class="form-group full">
-                    <label>Fotos (Opcional - Se recomienda crear el alumno aquí y subir las fotos directo en Google Drive)</label>
-                    <div class="drop-zone" id="drop-zone">
-                        <i data-lucide="upload-cloud"></i>
-                        <p id="file-count">Puedes arrastrar fotos o dejar vacío para subir luego</p>
-                        <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                    </div>
+                <div class="form-group full" style="background:#f4f4f4; padding:15px; border-radius:8px; display:flex; align-items:center;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight: 500;">
+                        <input type="checkbox" id="adminPagado" style="width:20px; height:20px;">
+                        <span>Alumno Pagado (Activar envío de WhatsApp con galería y contraseña al registrar)</span>
+                    </label>
                 </div>
 
                 <button id="btnRegistrar" onclick="registrarNuevoAlumno()" class="btn-submit">
@@ -230,7 +224,7 @@
                         <tr>
                             <th>Colegio</th>
                             <th>Alumno</th>
-                            <th>Acción</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
@@ -244,29 +238,22 @@
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
         
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('fileInput');
-        const fileCountDisplay = document.getElementById('file-count');
-        let selectedFiles = [];
-
         // Inicializar iconos
         lucide.createIcons();
 
-        // Drag & Drop
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-        function handleFiles(files) {
-            selectedFiles = Array.from(files);
-            fileCountDisplay.innerText = `${selectedFiles.length} archivos seleccionados`;
-            lucide.createIcons();
+        function formatTelefonoVenezuela(telefono) {
+            let clean = telefono.replace(/\D/g, ''); // Deja solo dígitos
+            if (!clean) return '';
+            
+            // Si empieza con 0, le quitamos el 0 (ej: 04121234567 -> 4121234567)
+            if (clean.startsWith('0')) {
+                clean = clean.substring(1);
+            }
+            // Si no empieza con 58 (código de Venezuela), se lo añadimos
+            if (!clean.startsWith('58')) {
+                clean = '58' + clean;
+            }
+            return clean;
         }
 
         async function registrarNuevoAlumno() {
@@ -276,9 +263,10 @@
             const colegio = document.getElementById('adminColegio').value.trim();
             const nombre = document.getElementById('adminNombre').value.trim();
             const clave = document.getElementById('adminClave').value.trim();
+            const telefonoRaw = document.getElementById('adminTelefono').value.trim();
 
             if (!colegio || !nombre || !clave) {
-                alert("Por favor, llena todos los campos.");
+                alert("Por favor, llena todos los campos obligatorios.");
                 return;
             }
 
@@ -288,27 +276,12 @@
                 status.style.color = "blue";
                 status.innerText = "Procesando datos y enviando...";
 
-                // Leer archivos y convertirlos a Base64
-                const filePromises = selectedFiles.map(file => {
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve({
-                            name: file.name,
-                            type: file.type,
-                            base64: e.target.result.split(',')[1]
-                        });
-                        reader.readAsDataURL(file);
-                    });
-                });
-
-                const processedFiles = await Promise.all(filePromises);
-
                 const payload = {
                     action: 'createGallery',
                     colegio: colegio,
                     nombre: nombre,
                     clave: clave,
-                    files: processedFiles
+                    files: [] // Vacío porque las fotos se suben manualmente
                 };
 
                 // IMPORTANTE: Para evitar el error 500, enviamos los datos como texto plano
@@ -326,14 +299,14 @@
                 alert("¡Registro enviado! Verifica tu Drive en unos segundos.");
                 
                 if (document.getElementById('adminPagado').checked) {
-                    const telefono = document.getElementById('adminTelefono').value.replace(/\D/g, '');
+                    const telefono = formatTelefonoVenezuela(telefonoRaw);
                     if (telefono) {
                         const urlGaleria = `https://fotosusman.github.io/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
                         const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
                         const waLink = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
                         window.open(waLink, '_blank');
                     } else {
-                        alert("No ingresaste un número de teléfono válido para WhatsApp.");
+                        alert("Por favor ingresa un teléfono válido para WhatsApp.");
                     }
                 }
                 
@@ -344,7 +317,7 @@
                 alert("Error al conectar con el servidor.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "CREAR EN DRIVE Y EXCEL";
+                btn.innerText = "CREAR ALUMNO EN EXCEL Y CARPETA";
             }
         }
 
@@ -360,16 +333,32 @@
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = "";
                 users.forEach(user => {
+                    // user[0] = Colegio, user[1] = Nombre, user[2] = Clave, user[3] = idGaleria
                     const row = `<tr>
                         <td>${user[0]}</td>
                         <td>${user[1]}</td>
-                        <td><a href="https://drive.google.com/drive/folders/${user[3]}" target="_blank" style="color: var(--royal-blue); font-weight: 600;">Ver Carpeta</a></td>
+                        <td>
+                            <a href="https://drive.google.com/drive/folders/${user[3]}" target="_blank" style="color: var(--royal-blue); font-weight: 600; margin-right: 15px;">Ver Carpeta</a>
+                            <button onclick="enviarWhatsAppManual('${user[1]}', '${user[2] || ''}')" class="btn-pill" style="padding: 5px 12px; font-size: 0.8rem; background: #25D366; color: white; border: none; cursor: pointer; border-radius: var(--radius-pill); font-weight: 600;">
+                                WhatsApp
+                            </button>
+                        </td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });
             } catch (error) {
                 console.error("Error cargando usuarios:", error);
             }
+        }
+
+        function enviarWhatsAppManual(nombre, clave) {
+            const tel = prompt("Introduce el teléfono del alumno (se aplicará +58 de Venezuela automáticamente):");
+            if (!tel) return;
+            const telefonoFormateado = formatTelefonoVenezuela(tel);
+            const urlGaleria = `https://fotosusman.github.io/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+            const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
+            const waLink = `https://wa.me/${telefonoFormateado}?text=${encodeURIComponent(mensaje)}`;
+            window.open(waLink, '_blank');
         }
 
         // Cargar al inicio
