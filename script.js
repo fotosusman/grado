@@ -113,44 +113,57 @@ async function login() {
     }
 }
 
-// Función para descargar el ZIP directamente
+// Función para descargar todas las fotos (foto por foto) sin crear ZIP
 async function descargarZip(folderId) {
     const btnDownload = document.getElementById('btnDownloadAll');
-    const textoOriginal = btnDownload.innerHTML;
+    const btnDownloadBottom = document.getElementById('btnDownloadBottom');
+    const originalText = btnDownload ? btnDownload.innerHTML : '';
+    const originalBottomText = btnDownloadBottom ? btnDownloadBottom.innerHTML : '';
 
     try {
-        btnDownload.innerHTML = '<i data-lucide="loader" class="spin"></i> Preparando descarga...';
+        if (btnDownload) btnDownload.innerHTML = '<i data-lucide="loader" class="spin"></i> Descargando...';
+        if (btnDownloadBottom) btnDownloadBottom.innerHTML = '<i data-lucide="loader" class="spin"></i> Descargando...';
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
-        const response = await fetch(`${SCRIPT_URL}?action=getArchivos&folderId=${folderId}`, {
-            method: 'GET',
-            redirect: 'follow'
-        });
-        const archivos = await response.json();
-        console.log("Archivos en carpeta ZIP:", archivos);
-
-        if (archivos && archivos.length > 0) {
-            // Buscar el archivo ZIP
-            const zip = archivos.find(a => a.nombre.toLowerCase().endsWith('.zip')) || archivos[0];
-            // Descarga directa desde Google Drive
-            const downloadUrl = `https://drive.google.com/uc?export=download&id=${zip.id}`;
-
-            // Crear enlace invisible y hacer clic para forzar descarga
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = zip.nombre;
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert("No se encontró el archivo ZIP. Contacta al fotógrafo.");
+        const fotos = document.querySelectorAll('#galeria img');
+        if (fotos.length === 0) {
+            alert("No hay fotos para descargar.");
+            return;
         }
+
+        for (let i = 0; i < fotos.length; i++) {
+            const urlBase = fotos[i].src;
+            const downloadUrl = urlBase.replace('export=view', 'export=download');
+            
+            try {
+                const res = await fetch(downloadUrl);
+                const blob = await res.blob();
+                const objectUrl = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = objectUrl;
+                a.download = `foto_${i + 1}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(objectUrl);
+                
+                // Pausa para que el navegador procese cada descarga
+                await new Promise(r => setTimeout(r, 600));
+            } catch(e) {
+                console.error("Error descargando:", e);
+                // Fallback: intentar abrir en otra pestaña
+                window.open(downloadUrl, '_blank');
+            }
+        }
+        alert("Descargas iniciadas.");
+
     } catch (error) {
-        console.error("Error descargando ZIP:", error);
+        console.error("Error descargando fotos:", error);
         alert("Error al intentar descargar. Intenta de nuevo.");
     } finally {
-        btnDownload.innerHTML = textoOriginal;
+        if (btnDownload) btnDownload.innerHTML = originalText;
+        if (btnDownloadBottom) btnDownloadBottom.innerHTML = originalBottomText;
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }

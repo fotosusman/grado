@@ -3,7 +3,7 @@
  * Logic for the Pixieset Style Gallery
  */
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
 
 let CURRENT_USER_NAME = "";
 
@@ -78,7 +78,6 @@ async function login() {
             const btnZip = document.getElementById('btn-descarga-zip');
             if (btnZip && alumno.idGaleria) {
                 btnZip.style.display = 'inline-flex';
-                btnZip.href = `${SCRIPT_URL}?action=downloadZip&folderId=${alumno.idGaleria}`;
             }
 
         } else {
@@ -143,3 +142,47 @@ function reveal() {
 }
 
 window.addEventListener("scroll", reveal);
+
+async function descargarTodasLasFotos() {
+    const fotos = document.querySelectorAll('#galeria img');
+    if (fotos.length === 0) {
+        alert("No hay fotos para descargar.");
+        return;
+    }
+
+    const btn = document.getElementById('btn-descarga-zip');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Descargando...';
+    btn.disabled = true;
+
+    for (let i = 0; i < fotos.length; i++) {
+        const urlBase = fotos[i].src;
+        // Si es una URL de Drive, cambiar export=view a export=download
+        const downloadUrl = urlBase.replace('export=view', 'export=download');
+        
+        try {
+            const response = await fetch(downloadUrl);
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = `foto_${i + 1}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(objectUrl);
+            
+            // Pausa para no saturar el navegador y permitir descarga múltiple
+            await new Promise(r => setTimeout(r, 600));
+        } catch(e) {
+            console.error("Error descargando la foto " + (i+1), e);
+            // Fallback: abrir en nueva pestaña si falla el fetch por CORS
+            window.open(downloadUrl, '_blank');
+        }
+    }
+
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    alert("Descargas iniciadas.");
+}

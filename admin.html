@@ -197,17 +197,25 @@
                     <input type="text" id="adminClave" class="admin-input" placeholder="Define una clave segura" required>
                 </div>
 
+                <div class="form-group full" style="background:#f4f4f4; padding:15px; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="adminPagado" onchange="document.getElementById('adminTelefono').style.display = this.checked ? 'block' : 'none';" style="width:20px; height:20px;">
+                        <span>Alumno Pagado (Activar envío de WhatsApp con galería y contraseña)</span>
+                    </label>
+                    <input type="text" id="adminTelefono" class="admin-input" placeholder="Teléfono (Ej: 573001234567)" style="display:none; margin-top:10px; width:100%;">
+                </div>
+
                 <div class="form-group full">
-                    <label>Fotos (Arrastra la carpeta o selecciona archivos)</label>
+                    <label>Fotos (Opcional - Se recomienda crear el alumno aquí y subir las fotos directo en Google Drive)</label>
                     <div class="drop-zone" id="drop-zone">
                         <i data-lucide="upload-cloud"></i>
-                        <p id="file-count">Haz clic o arrastra las fotos aquí</p>
+                        <p id="file-count">Puedes arrastrar fotos o dejar vacío para subir luego</p>
                         <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
                     </div>
                 </div>
 
                 <button id="btnRegistrar" onclick="registrarNuevoAlumno()" class="btn-submit">
-                    CREAR EN DRIVE Y EXCEL
+                    CREAR ALUMNO EN EXCEL Y CARPETA
                 </button>
             </div>
 
@@ -278,7 +286,7 @@
                 btn.disabled = true;
                 btn.innerText = "Registrando...";
                 status.style.color = "blue";
-                status.innerText = "Procesando fotos y enviando...";
+                status.innerText = "Procesando datos y enviando...";
 
                 // Leer archivos y convertirlos a Base64
                 const filePromises = selectedFiles.map(file => {
@@ -295,6 +303,14 @@
 
                 const processedFiles = await Promise.all(filePromises);
 
+                const payload = {
+                    action: 'createGallery',
+                    colegio: colegio,
+                    nombre: nombre,
+                    clave: clave,
+                    files: processedFiles
+                };
+
                 // IMPORTANTE: Para evitar el error 500, enviamos los datos como texto plano
                 // Google Apps Script lo recibirá correctamente en e.postData.contents
                 await fetch(APPS_SCRIPT_URL, {
@@ -303,18 +319,25 @@
                     headers: {
                         'Content-Type': 'text/plain'
                     },
-                    body: JSON.stringify({
-                        action: 'createGallery',
-                        colegio: colegio,
-                        nombre: nombre,
-                        clave: clave,
-                        files: processedFiles
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 // Como es no-cors, asumimos éxito si no salta al catch
                 alert("¡Registro enviado! Verifica tu Drive en unos segundos.");
-                location.reload(); // Recarga para limpiar
+                
+                if (document.getElementById('adminPagado').checked) {
+                    const telefono = document.getElementById('adminTelefono').value.replace(/\D/g, '');
+                    if (telefono) {
+                        const urlGaleria = `https://fotosusman.github.io/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+                        const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
+                        const waLink = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+                        window.open(waLink, '_blank');
+                    } else {
+                        alert("No ingresaste un número de teléfono válido para WhatsApp.");
+                    }
+                }
+                
+                setTimeout(() => location.reload(), 1500);
 
             } catch (error) {
                 console.error("Error:", error);
