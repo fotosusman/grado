@@ -284,14 +284,9 @@
                     files: [] // Vacío porque las fotos se suben manualmente
                 };
 
-                // IMPORTANTE: Para evitar el error 500, enviamos los datos como texto plano
-                // Google Apps Script lo recibirá correctamente en e.postData.contents
+                // Quitamos mode: 'no-cors' para poder leer los errores en la consola si los hay
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
-                    headers: {
-                        'Content-Type': 'text/plain'
-                    },
                     body: JSON.stringify(payload)
                 });
 
