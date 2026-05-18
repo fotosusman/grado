@@ -236,7 +236,7 @@
     </div>
 
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHa-Maq1PaTZgZmUDOv4w5LFYgd8sdJ_XxXpB21SFlt5FJRM98lW6fkpWfCJoP-ITeyQ/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
         
         // Inicializar iconos
         lucide.createIcons();
@@ -328,13 +328,13 @@
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = "";
                 users.forEach(user => {
-                    // user[0] = Colegio, user[1] = Nombre, user[2] = Clave, user[3] = idGaleria
+                    // Ahora user es un objeto: {colegio, nombre, clave, idGaleria}
                     const row = `<tr>
-                        <td>${user[0]}</td>
-                        <td>${user[1]}</td>
+                        <td>${user.colegio || 'N/A'}</td>
+                        <td>${user.nombre || 'N/A'}</td>
                         <td>
-                            <a href="https://drive.google.com/drive/folders/${user[3]}" target="_blank" style="color: var(--royal-blue); font-weight: 600; margin-right: 15px;">Ver Carpeta</a>
-                            <button onclick="enviarWhatsAppManual('${user[1]}', '${user[2] || ''}')" class="btn-pill" style="padding: 5px 12px; font-size: 0.8rem; background: #25D366; color: white; border: none; cursor: pointer; border-radius: var(--radius-pill); font-weight: 600;">
+                            <a href="https://drive.google.com/drive/folders/${user.idGaleria || ''}" target="_blank" style="color: var(--royal-blue); font-weight: 600; margin-right: 15px;">Ver Carpeta</a>
+                            <button onclick="enviarWhatsAppManual('${user.nombre || ''}', '${user.clave || ''}')" class="btn-pill" style="padding: 5px 12px; font-size: 0.8rem; background: #25D366; color: white; border: none; cursor: pointer; border-radius: var(--radius-pill); font-weight: 600;">
                                 WhatsApp
                             </button>
                         </td>
