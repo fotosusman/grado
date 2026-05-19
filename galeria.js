@@ -150,8 +150,8 @@ function reveal() {
 
 window.addEventListener("scroll", reveal);
 
-// Descarga secuencial: abre cada foto en nueva pestaña para que el usuario la guarde
-// (fetch directo a Drive está bloqueado por CORS)
+// Descarga secuencial usando iframes ocultos
+// (window.open se bloquea por popup blocker después de la 1ra foto)
 async function descargarTodasLasFotos() {
     const fotos = document.querySelectorAll('#galeria img');
     if (fotos.length === 0) {
@@ -161,27 +161,41 @@ async function descargarTodasLasFotos() {
 
     const btn = document.getElementById('btn-descarga-zip');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Abriendo fotos...';
     btn.disabled = true;
 
+    // Extraer todos los IDs de las fotos
+    const fileIds = [];
     for (let i = 0; i < fotos.length; i++) {
         const imgSrc = fotos[i].src;
-        // Extraer el ID de la URL de lh3 o drive
         let fileId = '';
         if (imgSrc.includes('lh3.googleusercontent.com/d/')) {
             fileId = imgSrc.split('/d/')[1].split('=')[0];
         } else if (imgSrc.includes('id=')) {
             fileId = imgSrc.split('id=')[1];
         }
+        if (fileId) fileIds.push(fileId);
+    }
 
-        if (fileId) {
-            // Abrir enlace de descarga directa de Drive en nueva pestaña
-            window.open(`https://drive.google.com/uc?export=download&id=${fileId}`, '_blank');
-            // Pausa para no saturar el navegador
-            await new Promise(r => setTimeout(r, 800));
-        }
+    // Descargar una por una usando iframes ocultos
+    for (let i = 0; i < fileIds.length; i++) {
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Descargando ${i + 1} de ${fileIds.length}...`;
+
+        // Crear iframe oculto que dispara la descarga sin popup blocker
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `https://drive.google.com/uc?export=download&id=${fileIds[i]}`;
+        document.body.appendChild(iframe);
+
+        // Esperar entre descargas para no saturar
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Limpiar iframe después de un rato
+        setTimeout(() => {
+            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        }, 5000);
     }
 
     btn.innerHTML = originalText;
     btn.disabled = false;
+    alert(`¡${fileIds.length} fotos descargadas!`);
 }
