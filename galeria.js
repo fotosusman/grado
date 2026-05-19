@@ -6,6 +6,20 @@
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
 
+// Convierte cualquier URL de Google Drive al formato que SÍ funciona para embedding externo
+function getDriveImageUrl(foto) {
+    // Si tenemos el ID directamente, usarlo
+    if (foto.id) {
+        return `https://lh3.googleusercontent.com/d/${foto.id}=s1600`;
+    }
+    // Si viene como URL de Drive, extraer el ID
+    if (foto.url && foto.url.includes('id=')) {
+        const id = foto.url.split('id=')[1];
+        return `https://lh3.googleusercontent.com/d/${id}=s1600`;
+    }
+    return foto.url;
+}
+
 // 1. Al cargar la página
 window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -76,7 +90,7 @@ async function cargarFotos(folderId) {
         if (fotos && fotos.length > 0) {
             // 1. Cargar una foto al azar como portada del hero
             const fotoRandom = fotos[Math.floor(Math.random() * fotos.length)];
-            const imgUrl = fotoRandom.url;
+            const imgUrl = getDriveImageUrl(fotoRandom);
             document.getElementById('hero-bg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('${imgUrl}')`;
             document.getElementById('hero-bg').style.transition = 'background-image 1.5s ease';
 
@@ -112,7 +126,7 @@ function mostrarFotos(fotos) {
         div.style.transitionDelay = `${index * 0.05}s`;
 
         const img = document.createElement('img');
-        img.src = foto.url;
+        img.src = getDriveImageUrl(foto);
         img.alt = foto.nombre;
         img.loading = "lazy";
 
@@ -136,7 +150,8 @@ function reveal() {
 
 window.addEventListener("scroll", reveal);
 
-// Descarga secuencial de todas las fotos
+// Descarga secuencial: abre cada foto en nueva pestaña para que el usuario la guarde
+// (fetch directo a Drive está bloqueado por CORS)
 async function descargarTodasLasFotos() {
     const fotos = document.querySelectorAll('#galeria img');
     if (fotos.length === 0) {
@@ -146,37 +161,27 @@ async function descargarTodasLasFotos() {
 
     const btn = document.getElementById('btn-descarga-zip');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Descargando...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Abriendo fotos...';
     btn.disabled = true;
 
     for (let i = 0; i < fotos.length; i++) {
-        const urlBase = fotos[i].src;
-        // Si es una URL de Drive, cambiar export=view a export=download
-        const downloadUrl = urlBase.replace('export=view', 'export=download');
-        
-        try {
-            const response = await fetch(downloadUrl);
-            const blob = await response.blob();
-            const objectUrl = window.URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = objectUrl;
-            a.download = `foto_${i + 1}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(objectUrl);
-            
-            // Pausa para no saturar el navegador y permitir descarga múltiple
-            await new Promise(r => setTimeout(r, 600));
-        } catch(e) {
-            console.error("Error descargando la foto " + (i+1), e);
-            // Fallback: abrir en nueva pestaña si falla el fetch por CORS
-            window.open(downloadUrl, '_blank');
+        const imgSrc = fotos[i].src;
+        // Extraer el ID de la URL de lh3 o drive
+        let fileId = '';
+        if (imgSrc.includes('lh3.googleusercontent.com/d/')) {
+            fileId = imgSrc.split('/d/')[1].split('=')[0];
+        } else if (imgSrc.includes('id=')) {
+            fileId = imgSrc.split('id=')[1];
+        }
+
+        if (fileId) {
+            // Abrir enlace de descarga directa de Drive en nueva pestaña
+            window.open(`https://drive.google.com/uc?export=download&id=${fileId}`, '_blank');
+            // Pausa para no saturar el navegador
+            await new Promise(r => setTimeout(r, 800));
         }
     }
 
     btn.innerHTML = originalText;
     btn.disabled = false;
-    alert("Descargas iniciadas.");
 }
