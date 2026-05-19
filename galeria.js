@@ -1,11 +1,13 @@
 /**
  * Galeria.js 
  * Logic for the Pixieset Style Gallery
+ * Flujo: Colegio → Nombre → Clave → Galería con portada al azar
  */
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
 
 let CURRENT_USER_NAME = "";
+let todosLosAlumnos = [];
 
 // 1. Al cargar la página
 window.onload = function() {
@@ -14,25 +16,81 @@ window.onload = function() {
 
     if (usuarioUrl) {
         CURRENT_USER_NAME = usuarioUrl;
-        configurarPortadaDirecta(usuarioUrl);
-    } else {
-        document.getElementById('hero-nombre').textContent = "Galería Privada";
+        // Si viene con user=, preconfigurar el nombre
+        preconfigurarDesdeURL(usuarioUrl);
     }
+
+    // Siempre cargar los colegios
+    cargarColegiosYAlumnos();
 
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
 };
 
-// 2. Configura la portada
-async function configurarPortadaDirecta(nombreUrl) {
+// 2. Cargar colegios y alumnos desde el backend
+async function cargarColegiosYAlumnos() {
+    const select = document.getElementById('colegio');
+    const inputNombre = document.getElementById('nombre');
+    if (!select) return;
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+        const alumnos = await response.json();
+        todosLosAlumnos = alumnos;
+
+        // Extraer colegios únicos
+        const colegios = [...new Set(alumnos.map(a => a.colegio.trim()))];
+
+        select.innerHTML = '<option value="" disabled selected>Selecciona tu colegio</option>';
+        colegios.forEach(col => {
+            const opt = document.createElement('option');
+            opt.value = col;
+            opt.textContent = col;
+            select.appendChild(opt);
+        });
+
+        // Escuchar cambios en el select para filtrar nombres
+        select.addEventListener('change', () => {
+            filtrarNombresPorColegio(select.value);
+        });
+
+        // Si venía por URL, intentar preseleccionar
+        if (CURRENT_USER_NAME) {
+            const alumnoEncontrado = alumnos.find(a => 
+                a.nombre.replace(/\s+/g, '').toLowerCase() === CURRENT_USER_NAME.replace(/\s+/g, '').toLowerCase()
+            );
+            if (alumnoEncontrado) {
+                // Preseleccionar colegio
+                select.value = alumnoEncontrado.colegio.trim();
+                filtrarNombresPorColegio(alumnoEncontrado.colegio.trim());
+                // Preseleccionar nombre
+                if (inputNombre) {
+                    inputNombre.value = alumnoEncontrado.nombre.trim();
+                }
+                // Mostrar nombre en hero
+                document.getElementById('hero-nombre').textContent = alumnoEncontrado.nombre;
+            }
+        }
+
+    } catch (error) {
+        console.error("Error cargando colegios:", error);
+        select.innerHTML = '<option value="" disabled selected>Error al cargar colegios</option>';
+    }
+}
+
+// Preconfigurar desde URL (portada y nombre)
+async function preconfigurarDesdeURL(nombreUrl) {
     try {
         const response = await fetch(`${SCRIPT_URL}?action=getCover&id=${nombreUrl}`);
         const data = await response.json();
 
         if (data.nombre) {
             document.getElementById('hero-nombre').textContent = data.nombre;
-            
+
             if (data.idPortada) {
                 const imgUrl = `https://drive.google.com/uc?export=view&id=${data.idPortada}`;
                 document.getElementById('hero-bg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${imgUrl}')`;
@@ -43,49 +101,115 @@ async function configurarPortadaDirecta(nombreUrl) {
     }
 }
 
-// 3. Función login (ahora se llama login() según el nuevo HTML)
+// Poblar el datalist de nombres filtrado por el colegio seleccionado
+function filtrarNombresPorColegio(colegioSeleccionado) {
+    const datalist = document.getElementById('alumnos-list');
+    const inputNombre = document.getElementById('nombre');
+    if (!datalist || !inputNombre) return;
+
+    // Habilitar el input de nombre
+    inputNombre.disabled = false;
+    inputNombre.placeholder = 'Escribe tu nombre...';
+
+    // Limpiar datalist
+    datalist.innerHTML = '';
+    
+    // Si no venía preconfigurado, limpiar el input
+    if (!CURRENT_USER_NAME) {
+        inputNombre.value = '';
+    }
+
+    // Filtrar alumnos del colegio seleccionado
+    const alumnosFiltrados = todosLosAlumnos.filter(
+        a => a.colegio.trim() === colegioSeleccionado.trim()
+    );
+
+    // Agregar opciones al datalist
+    alumnosFiltrados.forEach(a => {
+        const option = document.createElement('option');
+        option.value = a.nombre.trim();
+        datalist.appendChild(option);
+    });
+
+    console.log(`Autocompletado: ${alumnosFiltrados.length} alumnos para "${colegioSeleccionado}"`);
+}
+
+// 3. Función login
 async function login() {
+    const colegio = document.getElementById('colegio').value;
+    const nombre = document.getElementById('nombre').value;
     const clave = document.getElementById('clave').value;
     const statusMsg = document.getElementById('statusMsg');
 
-    if (!clave) {
-        statusMsg.textContent = "Por favor, introduce tu clave.";
+    if (!colegio || !nombre || !clave) {
+        statusMsg.textContent = "Por favor, completa todos los campos.";
+        statusMsg.className = "status-message error";
         return;
     }
 
     statusMsg.textContent = "Verificando...";
+    statusMsg.className = "status-message";
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`);
-        const text = await response.text();
-        const alumnos = JSON.parse(text);
-
-        // Buscamos al alumno por el nombre que viene en la URL y la clave
-        const alumno = alumnos.find(a => 
-            a.nombre.replace(/\s+/g, '').toLowerCase() === CURRENT_USER_NAME.replace(/\s+/g, '').toLowerCase() && 
-            String(a.clave) === clave
+        // Buscar el alumno en los datos ya cargados (evita otra llamada al servidor)
+        const alumno = todosLosAlumnos.find(a =>
+            a.colegio.trim() === colegio.trim() &&
+            a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() &&
+            String(a.clave).trim() === clave.trim()
         );
 
         if (alumno) {
             statusMsg.textContent = "¡Bienvenido!";
-            
-            // Ocultar hero-full y mostrar galería
-            document.getElementById('hero-pixieset').classList.add('minimized');
-            document.getElementById('galeria-section').classList.remove('hidden');
-            
+            statusMsg.className = "status-message success";
+
+            // Cargar una foto al azar como portada del hero
+            await cargarPortadaAlAzar(alumno.idGaleria);
+
+            // Minimizar hero y mostrar galería
+            setTimeout(() => {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('hero-pixieset').classList.add('minimized');
+                document.getElementById('galeria-section').classList.remove('hidden');
+
+                const btnZip = document.getElementById('btn-descarga-zip');
+                if (btnZip && alumno.idGaleria) {
+                    btnZip.style.display = 'inline-flex';
+                }
+            }, 800);
+
+            // Mostrar nombre en hero
+            document.getElementById('hero-nombre').textContent = alumno.nombre;
+
+            // Cargar fotos
             cargarFotos(alumno.idGaleria);
-            
-            const btnZip = document.getElementById('btn-descarga-zip');
-            if (btnZip && alumno.idGaleria) {
-                btnZip.style.display = 'inline-flex';
-            }
 
         } else {
-            statusMsg.textContent = "Clave incorrecta.";
+            statusMsg.textContent = "Datos incorrectos. Verifica tu colegio, nombre o clave.";
+            statusMsg.className = "status-message error";
         }
     } catch (error) {
         console.error("Error en login:", error);
         statusMsg.textContent = "Error de conexión.";
+        statusMsg.className = "status-message error";
+    }
+}
+
+// Cargar una foto al azar de la carpeta del alumno como portada del hero
+async function cargarPortadaAlAzar(folderId) {
+    try {
+        const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`);
+        const text = await response.text();
+        const fotos = JSON.parse(text);
+
+        if (fotos && fotos.length > 0) {
+            // Seleccionar una foto al azar
+            const fotoRandom = fotos[Math.floor(Math.random() * fotos.length)];
+            const imgUrl = fotoRandom.url;
+            document.getElementById('hero-bg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('${imgUrl}')`;
+            document.getElementById('hero-bg').style.transition = 'background-image 1.5s ease';
+        }
+    } catch (error) {
+        console.error("Error cargando portada al azar:", error);
     }
 }
 

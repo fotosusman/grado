@@ -20,12 +20,23 @@
     <section id="hero-pixieset" class="hero-full">
         <div id="hero-bg" class="hero-background"></div>
         <div class="hero-content">
-            <h1 id="hero-nombre">Cargando...</h1>
-            <p>Introduce tu clave para desbloquear tu galería completa</p>
+            <h1 id="hero-nombre">Galería Privada</h1>
+            <p>Introduce tus datos para desbloquear tu galería completa</p>
 
-            <div class="access-box">
-                <input type="password" id="clave" placeholder="Introduce tu clave aquí">
-                <button onclick="login()">Ver mis fotos</button>
+            <div class="login-box" id="login-box">
+                <div class="login-field">
+                    <select id="colegio" class="pixie-select">
+                        <option value="" disabled selected>Cargando colegios...</option>
+                    </select>
+                </div>
+                <div class="login-field">
+                    <input list="alumnos-list" id="nombre" class="pixie-input" placeholder="Selecciona tu colegio primero" disabled>
+                    <datalist id="alumnos-list"></datalist>
+                </div>
+                <div class="access-box">
+                    <input type="password" id="clave" placeholder="Introduce tu clave aquí">
+                    <button onclick="login()">Ver mis fotos</button>
+                </div>
             </div>
             <p id="statusMsg" class="status-message"></p>
         </div>
