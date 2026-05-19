@@ -16,36 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Función para mostrar las fotos en el HTML
-function mostrarFotos(fotos) {
-    const contenedor = document.getElementById('galeria');
-    contenedor.innerHTML = ''; // Limpiar mensaje de carga
 
-    if (!fotos || fotos.length === 0) {
-        contenedor.innerHTML = '<p class="mensaje">No se encontraron fotos en tu carpeta.</p>';
-        return;
-    }
-
-    fotos.forEach(foto => {
-        const urlVisualizacion = foto.url;
-
-        const div = document.createElement('div');
-        div.className = 'masonry-item reveal';
-
-        const img = document.createElement('img');
-        img.src = urlVisualizacion;
-        img.alt = foto.nombre || "Foto de galería";
-        img.loading = "lazy";
-
-        div.appendChild(img);
-        contenedor.appendChild(div);
-    });
-
-    // Re-activar animaciones para las fotos cargadas
-    setTimeout(reveal, 100);
-}
-
-// Función de Login
+// Función de Login — valida y redirige a Galeria.html
 async function login() {
     const colegio = document.getElementById('colegio').value;
     const nombre = document.getElementById('nombre').value;
@@ -61,14 +33,8 @@ async function login() {
     if (btnText) btnText.textContent = "Validando...";
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
-            method: 'GET',
-            redirect: 'follow'
-        });
-        const alumnos = await response.json();
-
-        // Buscamos al alumno ignorando espacios extras
-        const alumno = alumnos.find(a =>
+        // Buscar en los alumnos ya cargados en memoria
+        const alumno = todosLosAlumnos.find(a =>
             a.colegio.trim() === colegio.trim() &&
             a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() &&
             a.clave.toString().trim() === clave.trim()
@@ -76,32 +42,16 @@ async function login() {
 
         if (alumno) {
             console.log("Login exitoso para:", alumno.nombre);
-            // CORRECCIÓN: Usar classList en vez de style.display
-            // porque .hidden usa !important y bloquea el inline style
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('galeria-section').classList.remove('hidden');
-            document.getElementById('nombre-usuario').textContent = alumno.nombre;
+            if (btnText) btnText.textContent = "¡Bienvenido! Redirigiendo...";
 
-            // Cargamos las fotos usando el idGaleria registrado en el Excel
-            cargarFotos(alumno.idGaleria);
+            // Redirigir a Galeria.html con los datos del alumno
+            const params = new URLSearchParams({
+                user: alumno.nombre.replace(/\s+/g, ''),
+                colegio: alumno.colegio.trim(),
+                clave: clave.trim()
+            });
+            window.location.href = `Galeria.html?${params.toString()}`;
 
-            // Configurar botones de descarga con la carpeta ZIP del alumno
-            const btnDownload = document.getElementById('btnDownloadAll');
-            const btnDownloadBottom = document.getElementById('btnDownloadBottom');
-            if (alumno.idDescarga) {
-                const descargaFn = () => descargarZip(alumno.idDescarga);
-                if (btnDownload) btnDownload.onclick = descargaFn;
-                if (btnDownloadBottom) btnDownloadBottom.onclick = descargaFn;
-                console.log("Botones de descarga configurados con folder:", alumno.idDescarga);
-            }
-
-            // Re-inicializar iconos de Lucide para el botón inferior
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
-            // Scroll suave a la galería
-            setTimeout(() => {
-                document.getElementById('galeria-section').scrollIntoView({ behavior: 'smooth' });
-            }, 100);
         } else {
             alert("Datos incorrectos. Verifica tu colegio, nombre o clave.");
         }
@@ -110,93 +60,6 @@ async function login() {
         alert("Error de conexión. Revisa que el ID del Script sea correcto.");
     } finally {
         if (btnText) btnText.textContent = "Entrar a mi galería";
-    }
-}
-
-// Función para descargar todas las fotos (foto por foto) sin crear ZIP
-async function descargarZip(folderId) {
-    const btnDownload = document.getElementById('btnDownloadAll');
-    const btnDownloadBottom = document.getElementById('btnDownloadBottom');
-    const originalText = btnDownload ? btnDownload.innerHTML : '';
-    const originalBottomText = btnDownloadBottom ? btnDownloadBottom.innerHTML : '';
-
-    try {
-        if (btnDownload) btnDownload.innerHTML = '<i data-lucide="loader" class="spin"></i> Descargando...';
-        if (btnDownloadBottom) btnDownloadBottom.innerHTML = '<i data-lucide="loader" class="spin"></i> Descargando...';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        const fotos = document.querySelectorAll('#galeria img');
-        if (fotos.length === 0) {
-            alert("No hay fotos para descargar.");
-            return;
-        }
-
-        for (let i = 0; i < fotos.length; i++) {
-            const urlBase = fotos[i].src;
-            const downloadUrl = urlBase.replace('export=view', 'export=download');
-            
-            try {
-                const res = await fetch(downloadUrl);
-                const blob = await res.blob();
-                const objectUrl = window.URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = objectUrl;
-                a.download = `foto_${i + 1}.jpg`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(objectUrl);
-                
-                // Pausa para que el navegador procese cada descarga
-                await new Promise(r => setTimeout(r, 600));
-            } catch(e) {
-                console.error("Error descargando:", e);
-                // Fallback: intentar abrir en otra pestaña
-                window.open(downloadUrl, '_blank');
-            }
-        }
-        alert("Descargas iniciadas.");
-
-    } catch (error) {
-        console.error("Error descargando fotos:", error);
-        alert("Error al intentar descargar. Intenta de nuevo.");
-    } finally {
-        if (btnDownload) btnDownload.innerHTML = originalText;
-        if (btnDownloadBottom) btnDownloadBottom.innerHTML = originalBottomText;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-}
-
-// Función para solicitar las fotos al servidor
-async function cargarFotos(folderId) {
-    console.log("Iniciando carga de fotos para el folder:", folderId);
-    const contenedor = document.getElementById('galeria');
-
-    // Mostrar skeleton de carga mientras se obtienen las fotos
-    contenedor.innerHTML = `
-        <div class="loading-skeleton">
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card tall"></div>
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card tall"></div>
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-        </div>
-        <p class="loading-text">Cargando tu galería<span class="dots"></span></p>
-    `;
-
-    try {
-        const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`, {
-            method: 'GET',
-            redirect: 'follow'
-        });
-        const fotos = await response.json();
-        console.log("Fotos recibidas del servidor:", fotos);
-        mostrarFotos(fotos);
-    } catch (error) {
-        console.error("Error cargando fotos:", error);
-        contenedor.innerHTML = '<p class="loading-text">Error al cargar las imágenes. Intenta más tarde.</p>';
     }
 }
 

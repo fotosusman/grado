@@ -10,22 +10,36 @@ let CURRENT_USER_NAME = "";
 let todosLosAlumnos = [];
 
 // 1. Al cargar la página
-window.onload = function() {
+window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const usuarioUrl = urlParams.get('user');
-
-    if (usuarioUrl) {
-        CURRENT_USER_NAME = usuarioUrl;
-        // Si viene con user=, preconfigurar el nombre
-        preconfigurarDesdeURL(usuarioUrl);
-    }
-
-    // Siempre cargar los colegios
-    cargarColegiosYAlumnos();
+    const colegioUrl = urlParams.get('colegio');
+    const claveUrl = urlParams.get('clave');
 
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // Si vienen los 3 parámetros desde index.html → auto-login directo
+    if (usuarioUrl && colegioUrl && claveUrl) {
+        CURRENT_USER_NAME = usuarioUrl;
+        document.getElementById('hero-nombre').textContent = "Cargando...";
+        document.getElementById('statusMsg').textContent = "Verificando acceso...";
+
+        // Cargar alumnos y auto-autenticar
+        await cargarColegiosYAlumnos();
+        await autoLogin(colegioUrl, usuarioUrl, claveUrl);
+        return;
+    }
+
+    // Si solo viene user= (desde WhatsApp), preconfigurar
+    if (usuarioUrl) {
+        CURRENT_USER_NAME = usuarioUrl;
+        preconfigurarDesdeURL(usuarioUrl);
+    }
+
+    // Cargar colegios para el formulario manual
+    cargarColegiosYAlumnos();
 };
 
 // 2. Cargar colegios y alumnos desde el backend
@@ -134,7 +148,57 @@ function filtrarNombresPorColegio(colegioSeleccionado) {
     console.log(`Autocompletado: ${alumnosFiltrados.length} alumnos para "${colegioSeleccionado}"`);
 }
 
-// 3. Función login
+// Auto-login cuando viene redirigido desde index.html con los 3 parámetros
+async function autoLogin(colegio, userSinEspacios, clave) {
+    const statusMsg = document.getElementById('statusMsg');
+
+    try {
+        // Buscar el alumno en los datos ya cargados
+        const alumno = todosLosAlumnos.find(a =>
+            a.colegio.trim() === decodeURIComponent(colegio).trim() &&
+            a.nombre.replace(/\s+/g, '').toLowerCase() === userSinEspacios.replace(/\s+/g, '').toLowerCase() &&
+            String(a.clave).trim() === decodeURIComponent(clave).trim()
+        );
+
+        if (alumno) {
+            statusMsg.textContent = "¡Bienvenido!";
+            statusMsg.className = "status-message success";
+
+            // Mostrar nombre en hero
+            document.getElementById('hero-nombre').textContent = alumno.nombre;
+
+            // Ocultar formulario de login
+            document.getElementById('login-box').style.display = 'none';
+
+            // Cargar portada al azar
+            await cargarPortadaAlAzar(alumno.idGaleria);
+
+            // Minimizar hero y mostrar galería
+            document.getElementById('hero-pixieset').classList.add('minimized');
+            document.getElementById('galeria-section').classList.remove('hidden');
+
+            const btnZip = document.getElementById('btn-descarga-zip');
+            if (btnZip && alumno.idGaleria) {
+                btnZip.style.display = 'inline-flex';
+            }
+
+            // Cargar fotos
+            cargarFotos(alumno.idGaleria);
+        } else {
+            // Si los datos no coinciden, mostrar el formulario manual
+            statusMsg.textContent = "Los datos no coinciden. Intenta de nuevo.";
+            statusMsg.className = "status-message error";
+            document.getElementById('hero-nombre').textContent = "Galería Privada";
+        }
+    } catch (error) {
+        console.error("Error en auto-login:", error);
+        statusMsg.textContent = "Error de conexión.";
+        statusMsg.className = "status-message error";
+        document.getElementById('hero-nombre').textContent = "Galería Privada";
+    }
+}
+
+// 3. Función login (manual desde el formulario de Galeria.html)
 async function login() {
     const colegio = document.getElementById('colegio').value;
     const nombre = document.getElementById('nombre').value;
