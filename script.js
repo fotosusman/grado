@@ -1,5 +1,5 @@
 // 1. URL de tu implementación (Actualizada a tu enlace más reciente)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmnIuhKNDjRjIip4VXT7fBgAr8ac-5HbnFzRfu3mLqWAAkAQS7MEqsm4vB-4NPSRLcig/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyC0U9KkjjjoAIHtWUpFSLqUi6ielmcEc5LanPtUg4be3c3j3mL5LM--VlXHwpTLoGpZA/exec";
 
 // Variable global para almacenar todos los alumnos (evita llamadas repetidas)
 let todosLosAlumnos = [];
