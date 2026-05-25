@@ -4,7 +4,7 @@
  * Direct access using the URL parameter ?user=Name
  */
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyC0U9KkjjjoAIHtWUpFSLqUi6ielmcEc5LanPtUg4be3c3j3mL5LM--VlXHwpTLoGpZA/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlhdfCB4Gce5XvMKiLHggr65Clv0xD7U9Uw0M9unCRVSCmfy_iXq8Ya0FTtcJpRK-j2A/exec";
 
 // Convierte cualquier URL de Google Drive al formato que SÍ funciona para embedding externo
 function getDriveImageUrl(foto) {
