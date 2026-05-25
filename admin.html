@@ -297,7 +297,7 @@
                 if (document.getElementById('adminPagado').checked) {
                     const telefono = formatTelefonoVenezuela(telefonoRaw);
                     if (telefono) {
-                        const urlGaleria = `https://fotosusman.github.io/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+                        const urlGaleria = `https://fotosusman.github.io/grado/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
                         const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
                         const waLink = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
                         window.open(waLink, '_blank');
@@ -351,7 +351,7 @@
             const tel = prompt("Introduce el teléfono del alumno (se aplicará +58 de Venezuela automáticamente):");
             if (!tel) return;
             const telefonoFormateado = formatTelefonoVenezuela(tel);
-            const urlGaleria = `https://fotosusman.github.io/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+            const urlGaleria = `https://fotosusman.github.io/grado/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
             const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
             const waLink = `https://wa.me/${telefonoFormateado}?text=${encodeURIComponent(mensaje)}`;
             window.open(waLink, '_blank');
