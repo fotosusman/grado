@@ -1,0 +1,163 @@
+const SPREADSHEET_ID = "1wYBU37mw6xvdI3BwKIrk2tQO5WPIKiAl4H5v0x4mO5g";
+const CARPETA_RAIZ_ID = "1QUiZYFLVcjQV74UDtI20sf1vRZKUmgh3";
+
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+
+    if (action === "getColegios") {
+      const colegios = [...new Set(data.slice(1).map(row => row[0]))].filter(c => c && c !== "");
+      return crearRespuesta(colegios);
+    }
+
+    if (action === "getAlumnos") {
+      const colegio = e.parameter.colegio;
+      let filteredData = data.slice(1);
+      if (colegio) {
+        filteredData = filteredData.filter(row => row[0] && row[0].toString().trim().toLowerCase() === colegio.trim().toLowerCase());
+      }
+      const listaAlumnos = filteredData.map(row => ({
+        colegio: row[0],
+        nombre: row[1],
+        clave: row[2],
+        idGaleria: row[3]
+      })).filter(a => a.nombre && a.nombre !== "" && a.colegio !== "ERROR FATAL:");
+      return crearRespuesta(listaAlumnos);
+    }
+
+    if (action === "getAllUsers") {
+      const users = data.slice(1).map(row => ({
+        colegio: row[0],
+        nombre: row[1],
+        clave: row[2],
+        idGaleria: row[3]
+      })).filter(u => u.nombre && u.nombre !== "" && u.colegio !== "ERROR FATAL:");
+      return crearRespuesta(users);
+    }
+
+    if (action === "getFotos" || action === "getArchivos") {
+      const folderId = e.parameter.folderId;
+      if (!folderId) throw new Error("Falta el ID de la carpeta");
+      return crearRespuesta(getFilesFromFolder(folderId));
+    }
+
+    if (e.parameter.nombre && e.parameter.clave && e.parameter.colegio) {
+      return crearRespuesta(checkCredentials(e.parameter.nombre, e.parameter.clave, e.parameter.colegio, data));
+    }
+
+    return HtmlService.createHtmlOutputFromFile(e.parameter.page || 'index')
+      .setTitle('Usman Mancera | Gestión')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+
+  } catch (err) {
+    return crearRespuesta({ success: false, error: err.toString() });
+  }
+}
+
+function doPost(e) {
+  let jsonData;
+  try {
+    jsonData = JSON.parse(e.postData.contents);
+    if (jsonData.action === 'createGallery' || (jsonData.colegio && jsonData.nombre && jsonData.clave)) {
+      return crearRespuesta(createGalleryWithPhotos(jsonData));
+    }
+    return crearRespuesta({ success: false, error: "Acción no reconocida" });
+  } catch (err) {
+    logErrorToSheet("doPost general", err.toString(), jsonData ? JSON.stringify(jsonData) : e.postData.contents);
+    return crearRespuesta({ success: false, error: err.toString() });
+  }
+}
+
+function crearRespuesta(objeto) {
+  return ContentService.createTextOutput(JSON.stringify(objeto)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function checkCredentials(nombreBuscado, claveBuscada, colegioBuscado, data) {
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === colegioBuscado && data[i][1] === nombreBuscado && String(data[i][2]) === String(claveBuscada)) {
+      const folderId = data[i][3];
+      if (!folderId) return { error: "No hay carpeta asignada." };
+      return { folderId: folderId, fotos: getFilesFromFolder(folderId) };
+    }
+  }
+  return { error: "Datos incorrectos." };
+}
+
+function getFilesFromFolder(folderId) {
+  try {
+    const folder = DriveApp.getFolderById(folderId);
+    const files = folder.getFiles();
+    const result = [];
+    while (files.hasNext()) {
+      const file = files.next();
+      const mime = file.getMimeType();
+      if (mime.indexOf('image/') === 0) {
+        result.push({
+          id: file.getId(),
+          nombre: file.getName(),
+          tipo: mime,
+          url: `https://lh3.googleusercontent.com/d/${file.getId()}=s1600`
+        });
+      }
+    }
+    return result;
+  } catch (e) {
+    return [];
+  }
+}
+
+function createGalleryWithPhotos(data) {
+  try {
+    const rootFolder = DriveApp.getFolderById(CARPETA_RAIZ_ID);
+    
+    let colegioFolder;
+    const schoolFolders = rootFolder.getFoldersByName(data.colegio);
+    if (schoolFolders.hasNext()) {
+      colegioFolder = schoolFolders.next();
+    } else {
+      colegioFolder = DriveApp.createFolder(data.colegio);
+      colegioFolder.moveTo(rootFolder);
+      colegioFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+    
+    const alumnoFolder = DriveApp.createFolder(data.nombre);
+    alumnoFolder.moveTo(colegioFolder);
+    alumnoFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const folderId = alumnoFolder.getId();
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheets()[0];
+    sheet.appendRow([data.colegio, data.nombre, data.clave, folderId]);
+
+    return { success: true, folderId: folderId };
+  } catch (e) {
+    logErrorToSheet("createGalleryWithPhotos", e.toString(), JSON.stringify(data));
+    return { success: false, error: e.toString() };
+  }
+}
+
+function logErrorToSheet(context, errorMsg, receivedData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheets()[0];
+    sheet.appendRow(["ERROR FATAL:", errorMsg, "Contexto: " + context, receivedData]);
+  } catch (e) {
+  }
+}
+
+function autorizarPermisosManualmente() {
+  try {
+    const root = DriveApp.getFolderById(CARPETA_RAIZ_ID);
+    Logger.log("Acceso a Drive verificado: " + root.getName());
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    Logger.log("Acceso a Sheets verificado: " + ss.getName());
+    return "¡Autorización completada con éxito!";
+  } catch (e) {
+    Logger.log("Error al autorizar: " + e.toString());
+    throw e;
+  }
+}
