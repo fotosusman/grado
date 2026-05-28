@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración | Usman Mancera</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
     <style>
         :root {
             --royal-blue: #3e4392;
@@ -180,7 +180,7 @@
         <div class="admin-card">
             <div class="admin-header">
                 <h1>Panel de Control</h1>
-                <p>Registra alumnos y sube sus fotos directamente a Google Drive.</p>
+                <p>Registra alumnos y crea galerías en Supabase Storage.</p>
             </div>
 
             <div class="admin-form">
@@ -236,34 +236,41 @@
     </div>
 
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlhdfCB4Gce5XvMKiLHggr65Clv0xD7U9Uw0M9unCRVSCmfy_iXq8Ya0FTtcJpRK-j2A/exec";
-        
+        const SUPABASE_URL = "https://dtoniylozbflssbaoixl.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_x2rHkO--OxlC2bNVqrcPeA_0cMp9sXT";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         // Inicializar iconos
         lucide.createIcons();
 
         function formatTelefonoVenezuela(telefono) {
-            let clean = telefono.replace(/\D/g, ''); // Deja solo dígitos
+            let clean = telefono.replace(/\D/g, '');
             if (!clean) return '';
-            
-            // Si empieza con 0, le quitamos el 0 (ej: 04121234567 -> 4121234567)
             if (clean.startsWith('0')) {
                 clean = clean.substring(1);
             }
-            // Si no empieza con 58 (código de Venezuela), se lo añadimos
             if (!clean.startsWith('58')) {
                 clean = '58' + clean;
             }
             return clean;
         }
 
+        function generarIdGaleria() {
+            if (window.crypto && window.crypto.randomUUID) {
+                return window.crypto.randomUUID().replace(/-/g, '');
+            }
+            return `g_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        }
+
         async function registrarNuevoAlumno() {
             const btn = document.getElementById('btnRegistrar');
             const status = document.getElementById('statusMessage');
-            
+
             const colegio = document.getElementById('adminColegio').value.trim();
             const nombre = document.getElementById('adminNombre').value.trim();
             const clave = document.getElementById('adminClave').value.trim();
             const telefonoRaw = document.getElementById('adminTelefono').value.trim();
+            const pagado = document.getElementById('adminPagado').checked;
 
             if (!colegio || !nombre || !clave) {
                 alert("Por favor, llena todos los campos obligatorios.");
@@ -274,30 +281,37 @@
                 btn.disabled = true;
                 btn.innerText = "Registrando...";
                 status.style.color = "blue";
-                status.innerText = "Procesando datos y enviando...";
+                status.innerText = "Creando galería en Supabase...";
 
-                const payload = {
-                    action: 'createGallery',
-                    colegio: colegio,
-                    nombre: nombre,
-                    clave: clave,
-                    files: [] // Vacío porque las fotos se suben manualmente
-                };
+                const idGaleria = generarIdGaleria();
+                const colegioSlug = colegio.toLowerCase().replace(/\s+/g, '-');
+                const carpeta = `${colegioSlug}/${idGaleria}`;
 
-                // Quitamos mode: 'no-cors' para poder leer los errores en la consola si los hay
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
-                });
+                const { error: insertError } = await _supabase.from('alumnos').insert([{ 
+                    colegio,
+                    nombre,
+                    clave,
+                    telefono: telefonoRaw,
+                    pagado,
+                    id_galeria: idGaleria
+                }]);
 
-                // Como es no-cors, asumimos éxito si no salta al catch
-                alert("¡Registro enviado! Verifica tu Drive en unos segundos.");
-                
-                if (document.getElementById('adminPagado').checked) {
+                if (insertError) {
+                    throw insertError;
+                }
+
+                try {
+                    await _supabase.storage.from('galerias').upload(`${carpeta}/.keep`, new Blob(['Galería creada en Supabase'], { type: 'text/plain' }), { cacheControl: '3600', upsert: false });
+                } catch (uploadError) {
+                    console.warn('No se pudo crear el placeholder en Storage.', uploadError);
+                }
+
+                alert("¡Alumno registrado correctamente en Supabase!");
+
+                if (pagado) {
                     const telefono = formatTelefonoVenezuela(telefonoRaw);
                     if (telefono) {
-                        const urlGaleria = `https://fotosusman.github.io/grado/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+                        const urlGaleria = `Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
                         const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
                         const waLink = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
                         window.open(waLink, '_blank');
@@ -305,12 +319,11 @@
                         alert("Por favor ingresa un teléfono válido para WhatsApp.");
                     }
                 }
-                
-                setTimeout(() => location.reload(), 1500);
 
+                setTimeout(() => location.reload(), 1500);
             } catch (error) {
-                console.error("Error:", error);
-                alert("Error al conectar con el servidor.");
+                console.error("Error registrando alumno:", error);
+                alert("Error al registrar el alumno en Supabase.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "CREAR ALUMNO EN EXCEL Y CARPETA";
@@ -319,23 +332,20 @@
 
         async function loadUsers() {
             try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAllUsers`, {
-                    method: "GET",
-                    mode: "cors",
-                    redirect: "follow"
-                });
-                if (!response.ok) throw new Error('Error en la red');
-                const users = await response.json();
+                const { data: users, error } = await _supabase.from('alumnos').select('colegio,nombre,clave,id_galeria');
+                if (error) throw error;
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = "";
+
                 users.forEach(user => {
-                    // Ahora user es un objeto: {colegio, nombre, clave, idGaleria}
+                    const nombreEscaped = (user.nombre || '').replace(/'/g, "\\'");
+                    const claveEscaped = (user.clave || '').replace(/'/g, "\\'");
                     const row = `<tr>
                         <td>${user.colegio || 'N/A'}</td>
                         <td>${user.nombre || 'N/A'}</td>
                         <td>
-                            <a href="https://drive.google.com/drive/folders/${user.idGaleria || ''}" target="_blank" style="color: var(--royal-blue); font-weight: 600; margin-right: 15px;">Ver Carpeta</a>
-                            <button onclick="enviarWhatsAppManual('${user.nombre || ''}', '${user.clave || ''}')" class="btn-pill" style="padding: 5px 12px; font-size: 0.8rem; background: #25D366; color: white; border: none; cursor: pointer; border-radius: var(--radius-pill); font-weight: 600;">
+                            <a href="Galeria.html?user=${encodeURIComponent((user.nombre || '').replace(/\s+/g, ''))}" target="_blank" style="color: var(--royal-blue); font-weight: 600; margin-right: 15px;">Abrir galería</a>
+                            <button onclick="enviarWhatsAppManual('${nombreEscaped}', '${claveEscaped}')" class="btn-pill" style="padding: 5px 12px; font-size: 0.8rem; background: #25D366; color: white; border: none; cursor: pointer; border-radius: var(--radius-pill); font-weight: 600;">
                                 WhatsApp
                             </button>
                         </td>
@@ -351,13 +361,12 @@
             const tel = prompt("Introduce el teléfono del alumno (se aplicará +58 de Venezuela automáticamente):");
             if (!tel) return;
             const telefonoFormateado = formatTelefonoVenezuela(tel);
-            const urlGaleria = `https://fotosusman.github.io/grado/Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
+            const urlGaleria = `Galeria.html?user=${encodeURIComponent(nombre.replace(/\s+/g, ''))}`;
             const mensaje = `Hola ${nombre}, tu galería de fotos ya está lista. Puedes verla aquí: ${urlGaleria} y tu clave de acceso es: ${clave}`;
             const waLink = `https://wa.me/${telefonoFormateado}?text=${encodeURIComponent(mensaje)}`;
             window.open(waLink, '_blank');
         }
 
-        // Cargar al inicio
         window.onload = loadUsers;
     </script>
 </body>

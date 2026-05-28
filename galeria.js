@@ -1,26 +1,14 @@
 /**
- * Galeria.js 
- * Logic for the Pixieset Style Gallery
+ * Galeria.js
+ * Logic for the Pixieset Style Gallery using Supabase Storage.
  * Direct access using the URL parameter ?user=Name
  */
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlhdfCB4Gce5XvMKiLHggr65Clv0xD7U9Uw0M9unCRVSCmfy_iXq8Ya0FTtcJpRK-j2A/exec";
+const SUPABASE_URL = "https://dtoniylozbflssbaoixl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_x2rHkO--OxlC2bNVqrcPeA_0cMp9sXT";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentRutaCarpeta = '';
 
-// Convierte cualquier URL de Google Drive al formato que SÍ funciona para embedding externo
-function getDriveImageUrl(foto) {
-    // Si tenemos el ID directamente, usarlo
-    if (foto.id) {
-        return `https://lh3.googleusercontent.com/d/${foto.id}=s1600`;
-    }
-    // Si viene como URL de Drive, extraer el ID
-    if (foto.url && foto.url.includes('id=')) {
-        const id = foto.url.split('id=')[1];
-        return `https://lh3.googleusercontent.com/d/${id}=s1600`;
-    }
-    return foto.url;
-}
-
-// 1. Al cargar la página
 window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const usuarioUrl = urlParams.get('user');
@@ -30,93 +18,105 @@ window.onload = async function() {
     }
 
     if (!usuarioUrl) {
-        // Si no viene ningún usuario en la URL, redirigir a index.html
         window.location.href = 'index.html';
         return;
     }
 
-    // Cargar la galería del alumno directamente
     await inicializarGaleria(usuarioUrl);
 };
 
-// Inicializa la galería cargando los datos del alumno y sus fotos
 async function inicializarGaleria(userSinEspacios) {
     const heroNombre = document.getElementById('hero-nombre');
     const statusMsg = document.getElementById('statusMsg');
 
     try {
-        // 1. Obtener la lista de alumnos para buscar su idGaleria y nombre real
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
-            method: 'GET',
-            redirect: 'follow'
-        });
-        const alumnos = await response.json();
+        const { data: alumnos, error } = await _supabase
+            .from('alumnos')
+            .select('*');
 
-        // Buscar el alumno ignorando espacios y mayúsculas
+        if (error) throw error;
+
         const alumno = alumnos.find(a =>
             a.nombre.replace(/\s+/g, '').toLowerCase() === userSinEspacios.replace(/\s+/g, '').toLowerCase()
         );
 
-        if (alumno && alumno.idGaleria) {
-            // Mostrar nombre real del alumno en el Hero
-            heroNombre.textContent = alumno.nombre;
-            statusMsg.textContent = "Cargando fotografías...";
-
-            // 2. Cargar las fotos de su galería
-            await cargarFotos(alumno.idGaleria);
-
-        } else {
-            heroNombre.textContent = "Galería no encontrada";
-            statusMsg.textContent = "Verifica que el enlace sea correcto o inicia sesión desde la página principal.";
+        if (!alumno) {
+            heroNombre.textContent = 'Galería no encontrada';
+            statusMsg.textContent = 'Verifica que el enlace sea correcto o inicia sesión desde la página principal.';
+            return;
         }
 
+        heroNombre.textContent = alumno.nombre;
+        statusMsg.textContent = 'Cargando fotografías...';
+
+        await cargarFotos(alumno);
     } catch (error) {
-        console.error("Error al inicializar la galería:", error);
-        heroNombre.textContent = "Error de conexión";
-        statusMsg.textContent = "No pudimos conectar con el servidor. Revisa tu conexión a internet.";
+        console.error('Error al inicializar la galería:', error);
+        heroNombre.textContent = 'Error de conexión';
+        statusMsg.textContent = 'No pudimos conectar con el servidor. Revisa tu conexión a internet.';
     }
 }
 
-// Solicita las fotos al servidor y las renderiza
-async function cargarFotos(folderId) {
+async function cargarFotos(alumno) {
     const contenedor = document.getElementById('galeria');
     const statusMsg = document.getElementById('statusMsg');
+    const heroBg = document.getElementById('hero-bg');
+    const rutaCarpeta = `${alumno.colegio.toLowerCase().replace(/\s+/g, '-')}/${alumno.id_galeria}`;
+    currentRutaCarpeta = rutaCarpeta;
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getFotos&folderId=${folderId}`);
-        const text = await response.text();
-        const fotos = JSON.parse(text);
+        const { data: archivos, error } = await _supabase
+            .storage
+            .from('galerias')
+            .list(rutaCarpeta);
 
-        if (fotos && fotos.length > 0) {
-            // 1. Cargar una foto al azar como portada del hero
-            const fotoRandom = fotos[Math.floor(Math.random() * fotos.length)];
-            const imgUrl = getDriveImageUrl(fotoRandom);
-            document.getElementById('hero-bg').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('${imgUrl}')`;
-            document.getElementById('hero-bg').style.transition = 'background-image 1.5s ease';
+        if (error) throw error;
+        contenedor.innerHTML = '';
 
-            // Ocultar mensaje de carga / estado
-            statusMsg.style.display = 'none';
+        if (!archivos || archivos.length === 0) {
+            contenedor.innerHTML = '<p class="loading-text">No se encontraron fotografías en esta galería.</p>';
+            statusMsg.textContent = 'Carpeta vacía';
+            return;
+        }
 
-            // 2. Mostrar todas las fotos en el grid
-            mostrarFotos(fotos);
-
-            // Mostrar el botón de descarga
-            const btnZip = document.getElementById('btn-descarga-zip');
-            if (btnZip) {
-                btnZip.style.display = 'inline-flex';
+        const portada = archivos.find(file => file.name.toLowerCase() === 'portada.jpg');
+        if (portada && heroBg) {
+            const { data } = _supabase.storage.from('galerias').getPublicUrl(`${rutaCarpeta}/portada.jpg`);
+            if (data && data.publicUrl) {
+                heroBg.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('${data.publicUrl}')`;
+                heroBg.style.backgroundSize = 'cover';
             }
-        } else {
-            contenedor.innerHTML = '<p class="loading-text">No se encontraron fotografías en tu carpeta de Google Drive.</p>';
-            statusMsg.textContent = "Carpeta vacía";
+        }
+
+        const fotos = archivos.filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file.name) && file.name.toLowerCase() !== 'portada.jpg');
+
+        if (fotos.length === 0) {
+            contenedor.innerHTML = '<p class="loading-text">No se encontraron fotografías válidas para mostrar.</p>';
+            statusMsg.textContent = 'Carpeta sin fotos visibles';
+            return;
+        }
+
+        statusMsg.style.display = 'none';
+        mostrarFotos(fotos, rutaCarpeta);
+
+        const zipFile = archivos.find(file => file.name.toLowerCase() === 'todo.zip');
+        const btnZip = document.getElementById('btn-descarga-zip');
+        if (btnZip) {
+            if (zipFile) {
+                btnZip.style.display = 'inline-flex';
+                btnZip.onclick = () => descargarZip(rutaCarpeta);
+            } else {
+                btnZip.style.display = 'none';
+            }
         }
     } catch (error) {
-        console.error("Error cargando fotos:", error);
+        console.error('Error cargando fotos:', error);
         contenedor.innerHTML = '<p class="loading-text">Error al cargar las imágenes.</p>';
-        statusMsg.textContent = "Error al leer archivos";
+        statusMsg.textContent = 'Error al leer archivos';
     }
 }
 
-function mostrarFotos(fotos) {
+function mostrarFotos(fotos, rutaCarpeta) {
     const contenedor = document.getElementById('galeria');
     contenedor.innerHTML = '';
 
@@ -126,9 +126,10 @@ function mostrarFotos(fotos) {
         div.style.transitionDelay = `${index * 0.05}s`;
 
         const img = document.createElement('img');
-        img.src = getDriveImageUrl(foto);
-        img.alt = foto.nombre;
-        img.loading = "lazy";
+        const { data } = _supabase.storage.from('galerias').getPublicUrl(`${rutaCarpeta}/${foto.name}`);
+        img.src = data && data.publicUrl ? data.publicUrl : '';
+        img.alt = foto.name;
+        img.loading = 'lazy';
 
         div.appendChild(img);
         contenedor.appendChild(div);
@@ -138,64 +139,31 @@ function mostrarFotos(fotos) {
 }
 
 function reveal() {
-    const reveals = document.querySelectorAll(".reveal");
+    const reveals = document.querySelectorAll('.reveal');
     for (let i = 0; i < reveals.length; i++) {
         const windowHeight = window.innerHeight;
         const elementTop = reveals[i].getBoundingClientRect().top;
         if (elementTop < windowHeight - 100) {
-            reveals[i].classList.add("active");
+            reveals[i].classList.add('active');
         }
     }
 }
 
-window.addEventListener("scroll", reveal);
+window.addEventListener('scroll', reveal);
 
-// Descarga secuencial usando iframes ocultos
-// (window.open se bloquea por popup blocker después de la 1ra foto)
-async function descargarTodasLasFotos() {
-    const fotos = document.querySelectorAll('#galeria img');
-    if (fotos.length === 0) {
-        alert("No hay fotos para descargar.");
+function descargarZip(rutaCarpeta) {
+    const { data } = _supabase.storage.from('galerias').getPublicUrl(`${rutaCarpeta}/todo.zip`);
+    if (data && data.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+    } else {
+        alert('No se encontró el archivo todo.zip en esta galería.');
+    }
+}
+
+function descargarTodasLasFotos() {
+    if (!currentRutaCarpeta) {
+        alert('No hay una galería activa para descargar.');
         return;
     }
-
-    const btn = document.getElementById('btn-descarga-zip');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-
-    // Extraer todos los IDs de las fotos
-    const fileIds = [];
-    for (let i = 0; i < fotos.length; i++) {
-        const imgSrc = fotos[i].src;
-        let fileId = '';
-        if (imgSrc.includes('lh3.googleusercontent.com/d/')) {
-            fileId = imgSrc.split('/d/')[1].split('=')[0];
-        } else if (imgSrc.includes('id=')) {
-            fileId = imgSrc.split('id=')[1];
-        }
-        if (fileId) fileIds.push(fileId);
-    }
-
-    // Descargar una por una usando iframes ocultos
-    for (let i = 0; i < fileIds.length; i++) {
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Descargando ${i + 1} de ${fileIds.length}...`;
-
-        // Crear iframe oculto que dispara la descarga sin popup blocker
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = `https://drive.google.com/uc?export=download&id=${fileIds[i]}`;
-        document.body.appendChild(iframe);
-
-        // Esperar entre descargas para no saturar
-        await new Promise(r => setTimeout(r, 1500));
-
-        // Limpiar iframe después de un rato
-        setTimeout(() => {
-            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        }, 5000);
-    }
-
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-    alert(`¡${fileIds.length} fotos descargadas!`);
+    descargarZip(currentRutaCarpeta);
 }
