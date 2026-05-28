@@ -1,132 +1,193 @@
-// 1. URL de tu implementación (Actualizada a tu enlace más reciente)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlhdfCB4Gce5XvMKiLHggr65Clv0xD7U9Uw0M9unCRVSCmfy_iXq8Ya0FTtcJpRK-j2A/exec";
+﻿/**
+ * SISTEMA DE GALERÍAS ALTA VELOCIDAD - USMAN MANCERA
+ * Conectado a la tabla con esquema UUID e id_galeria
+ */
 
-// Variable global para almacenar todos los alumnos (evita llamadas repetidas)
-let todosLosAlumnos = [];
+// 1. Tus credenciales reales de Supabase (Públicas y Seguras)
+const SUPABASE_URL = "https://dtoniylozbflssbaoixl.supabase.co"; 
+const SUPABASE_KEY = "sb_publishable_x2rHkO--OxlC2bNVqrcPeA_0cMp9sXT";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Inicialización
+// Variable global para mantener los datos del alumno en memoria
+let alumnoActivo = null;
+
+// Inicialización del sistema al cargar el documento
 document.addEventListener('DOMContentLoaded', () => {
-    cargarColegiosYAlumnos();
+    const urlParams = new URLSearchParams(window.location.search);
+    const usuarioUrl = urlParams.get('user'); // Captura el parámetro ?user=NombreAlumno
+
+    if (usuarioUrl) {
+        console.log("Iniciando carga para el usuario de la URL:", usuarioUrl);
+        cargarDatosPortada(usuarioUrl);
+    }
+
     reveal();
     initParallax();
 
-    // Inicializar iconos de Lucide si están disponibles
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
 });
 
-
-// Función de Login — valida y redirige a Galeria.html
-async function login() {
-    const colegio = document.getElementById('colegio').value;
-    const nombre = document.getElementById('nombre').value;
-    const clave = document.getElementById('clave').value;
-    const btnText = document.getElementById('btnEntrarText');
-
-    if (!colegio || !nombre || !clave) {
-        alert("Por favor, completa todos los campos.");
-        return;
-    }
-
-    console.log("Intentando conectar con Apps Script...");
-    if (btnText) btnText.textContent = "Validando...";
-
+// Función 1: Busca al alumno por URL y renderiza el fondo 'portada.jpg' desde su 'id_galeria'
+async function cargarDatosPortada(nombreUrl) {
     try {
-        // Buscar en los alumnos ya cargados en memoria
-        const alumno = todosLosAlumnos.find(a =>
-            a.colegio.trim() === colegio.trim() &&
-            a.nombre.trim().toLowerCase() === nombre.trim().toLowerCase() &&
-            a.clave.toString().trim() === clave.trim()
+        // Consultamos tu tabla alumnos estructurada por tu script SQL
+        const { data: alumnos, error } = await _supabase
+            .from('alumnos')
+            .select('*');
+
+        if (error) throw error;
+
+        // Quitamos los espacios para emparejar la URL con la base de datos sin fallos
+        const alumno = alumnos.find(a => 
+            a.nombre.replace(/\s+/g, '').toLowerCase() === nombreUrl.toLowerCase()
         );
 
         if (alumno) {
-            console.log("Login exitoso para:", alumno.nombre);
-            if (btnText) btnText.textContent = "¡Bienvenido! Redirigiendo...";
+            alumnoActivo = alumno; // Guardamos la fila entera en la variable global
+            console.log("Alumno localizado con éxito:", alumno.nombre);
 
-            // Redirigir a Galeria.html con los datos del alumno
-            const params = new URLSearchParams({
-                user: alumno.nombre.replace(/\s+/g, ''),
-                colegio: alumno.colegio.trim(),
-                clave: clave.trim()
-            });
-            window.location.href = `Galeria.html?${params.toString()}`;
+            // Reemplazamos dinámicamente el título principal de la web
+            const tituloNombre = document.getElementById('hero-nombre') || document.querySelector('.hero-title h1');
+            if (tituloNombre) tituloNombre.textContent = alumno.nombre;
 
+            // Armamos la ruta del Storage público: colegio/id_galeria
+            const rutaCarpeta = `${alumno.colegio.toLowerCase().replace(/\s+/g, '-')}/${alumno.id_galeria}`;
+            
+            // Buscamos la foto fija llamada obligatoriamente 'portada.jpg'
+            const { data } = _supabase
+                .storage
+                .from('galerias')
+                .getPublicUrl(`${rutaCarpeta}/portada.jpg`);
+
+            const heroBg = document.getElementById('hero-bg') || document.querySelector('.parallax-img');
+            if (heroBg && data.publicUrl) {
+                heroBg.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${data.publicUrl}')`;
+                heroBg.style.backgroundSize = 'cover';
+                heroBg.style.backgroundPosition = 'center';
+                console.log("Fondo del Hero establecido de forma estática.");
+            }
         } else {
-            alert("Datos incorrectos. Verifica tu colegio, nombre o clave.");
+            console.error("El nombre de usuario provisto en el link de WhatsApp no existe.");
         }
-    } catch (error) {
-        console.error("Error en el login:", error);
-        alert("Error de conexión. Revisa que el ID del Script sea correcto.");
-    } finally {
+    } catch (err) {
+        console.error("Error crítico al inicializar la portada:", err);
+    }
+}
+
+// Función 2: Ejecuta la validación de la contraseña de acceso
+async function login() {
+    const claveInput = document.getElementById('clave').value;
+    const btnText = document.getElementById('btnEntrarText');
+
+    if (!alumnoActivo) {
+        alert("Error: No se han podido estructurar los datos del alumno.");
+        return;
+    }
+
+    if (!claveInput) {
+        alert("Por favor, introduce tu contraseña de acceso.");
+        return;
+    }
+
+    if (btnText) btnText.textContent = "Verificando...";
+
+    // Validación limpia contra el campo de texto 'clave' de tu SQL
+    if (alumnoActivo.clave.toString().trim() === claveInput.trim()) {
+        console.log("¡Acceso concedido!");
+
+        // Transición de secciones ocultando el login
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('galeria-section').classList.remove('hidden');
+        
+        const etiquetaUsuario = document.getElementById('nombre-usuario');
+        if (etiquetaUsuario) etiquetaUsuario.textContent = alumnoActivo.nombre;
+
+        // Enlazamos automáticamente los botones de descarga al archivo 'todo.zip' de su carpeta
+        const rutaCarpeta = `${alumnoActivo.colegio.toLowerCase().replace(/\s+/g, '-')}/${alumnoActivo.id_galeria}`;
+        const { data: zipData } = _supabase
+            .storage
+            .from('galerias')
+            .getPublicUrl(`${rutaCarpeta}/todo.zip`);
+
+        const btnDownload = document.getElementById('btnDownloadAll');
+        const btnDownloadBottom = document.getElementById('btnDownloadBottom');
+        
+        if (zipData && zipData.publicUrl) {
+            const iniciarDescarga = () => window.open(zipData.publicUrl, '_blank');
+            if (btnDownload) btnDownload.onclick = iniciarDescarga;
+            if (btnDownloadBottom) btnDownloadBottom.onclick = iniciarDescarga;
+        }
+
+        // Cargamos el listado completo de fotos en el contenedor masonry
+        cargarFotosDesdeStorage();
+    } else {
+        alert("Contraseña inválida. Inténtalo de nuevo.");
         if (btnText) btnText.textContent = "Entrar a mi galería";
     }
 }
 
-// --- FUNCIONES DE SOPORTE (Animaciones y UI) ---
+// Función 3: Escanea el Storage y renderiza la cuadrícula de imágenes
+async function cargarFotosDesdeStorage() {
+    const contenedor = document.getElementById('galeria');
+    if (!contenedor) return;
 
-async function cargarColegiosYAlumnos() {
-    const select = document.getElementById('colegio');
-    if (!select) return;
-
+    const rutaCarpeta = `${alumnoActivo.colegio.toLowerCase().replace(/\s+/g, '-')}/${alumnoActivo.id_galeria}`;
+    
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=getAlumnos`, {
-            method: 'GET',
-            redirect: 'follow'
+        const { data: archivos, error } = await _supabase
+            .storage
+            .from('galerias')
+            .list(rutaCarpeta);
+
+        if (error) throw error;
+
+        contenedor.innerHTML = ''; // Barremos mensajes anteriores
+
+        if (!archivos || archivos.length === 0) {
+            contenedor.innerHTML = '<p class="mensaje">Tu galería se está procesando y estará lista muy pronto.</p>';
+            return;
+        }
+
+        archivos.forEach(archivo => {
+            const esImagen = /\.(jpg|jpeg|png|webp)$/i.test(archivo.name);
+            // Evitamos duplicar la foto de portada en la cuadrícula de abajo
+            const noEsPortada = archivo.name !== 'portada.jpg';
+            
+            if (esImagen && noEsPortada) {
+                const { data } = _supabase
+                    .storage
+                    .from('galerias')
+                    .getPublicUrl(`${rutaCarpeta}/${archivo.name}`);
+
+                const div = document.createElement('div');
+                div.className = 'masonry-item reveal';
+
+                const img = document.createElement('img');
+                img.src = data.publicUrl;
+                img.alt = archivo.name;
+                img.loading = "lazy";
+
+                div.appendChild(img);
+                contenedor.appendChild(div);
+            }
         });
-        const alumnos = await response.json();
 
-        // Guardar todos los alumnos en variable global
-        todosLosAlumnos = alumnos;
+        // Disparamos animaciones de scroll
+        setTimeout(reveal, 150);
 
-        // Extraer colegios únicos
-        const colegios = [...new Set(alumnos.map(a => a.colegio.trim()))];
+        setTimeout(() => {
+            document.getElementById('galeria-section').scrollIntoView({ behavior: 'smooth' });
+        }, 200);
 
-        select.innerHTML = '<option value="" disabled selected>Selecciona tu colegio</option>';
-        colegios.forEach(col => {
-            const opt = document.createElement('option');
-            opt.value = col;
-            opt.textContent = col;
-            select.appendChild(opt);
-        });
-
-        // Escuchar cambios en el select para filtrar nombres
-        select.addEventListener('change', () => {
-            filtrarNombresPorColegio(select.value);
-        });
-
-    } catch (error) {
-        console.error("Error cargando colegios:", error);
-        select.innerHTML = '<option value="" disabled selected>Error al cargar colegios</option>';
+    } catch (err) {
+        console.error("Error al mapear los objetos multimedia:", err);
+        contenedor.innerHTML = '<p class="loading-text">Error en la conexión multimedia de alta velocidad.</p>';
     }
 }
 
-// Poblar el datalist de nombres filtrado por el colegio seleccionado
-function filtrarNombresPorColegio(colegioSeleccionado) {
-    const datalist = document.getElementById('alumnos-list');
-    const inputNombre = document.getElementById('nombre');
-    if (!datalist || !inputNombre) return;
-
-    // Limpiar datalist y el input
-    datalist.innerHTML = '';
-    inputNombre.value = '';
-    inputNombre.placeholder = 'Escribe tu nombre...';
-
-    // Filtrar alumnos del colegio seleccionado
-    const alumnosFiltrados = todosLosAlumnos.filter(
-        a => a.colegio.trim() === colegioSeleccionado.trim()
-    );
-
-    // Agregar opciones al datalist
-    alumnosFiltrados.forEach(a => {
-        const option = document.createElement('option');
-        option.value = a.nombre.trim();
-        datalist.appendChild(option);
-    });
-
-    console.log(`Autocompletado: ${alumnosFiltrados.length} alumnos para "${colegioSeleccionado}"`);
-}
-
+// --- ANIMACIONES FLUIDAS ORIGINALES ---
 function reveal() {
     const reveals = document.querySelectorAll(".reveal");
     for (let i = 0; i < reveals.length; i++) {
